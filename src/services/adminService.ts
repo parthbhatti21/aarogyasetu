@@ -15,7 +15,15 @@ export async function fetchTodayDateString() {
   return new Date().toISOString().split('T')[0];
 }
 
-export async function fetchAdminOverview(today: string) {
+export async function fetchAdminOverview(today: string, hospitalId?: string | null) {
+  // Build queries with optional hospital filtering
+  const buildTokenQuery = (query: any) => {
+    if (hospitalId) {
+      return query.eq('hospital_id', hospitalId);
+    }
+    return query;
+  };
+
   const [
     patientsRes,
     tokensTodayRes,
@@ -25,20 +33,21 @@ export async function fetchAdminOverview(today: string) {
     queueRes,
   ] = await Promise.all([
     supabase.from('patients').select('id', { count: 'exact', head: true }),
-    supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today),
-    supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).in('status', ['Waiting', 'Active']),
-    supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).eq('status', 'Completed'),
+    buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today)),
+    buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).in('status', ['Waiting', 'Active'])),
+    buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).eq('status', 'Completed')),
     supabase
       .from('patients')
       .select('id, patient_id, full_name, phone, created_at')
       .order('created_at', { ascending: false })
       .limit(10),
-    supabase
-      .from('tokens')
-      .select('*, patients (id, full_name, patient_id, phone)')
-      .eq('visit_date', today)
-      .in('status', ['Waiting', 'Active'])
-      .order('queue_position', { ascending: true }),
+    buildTokenQuery(
+      supabase
+        .from('tokens')
+        .select('*, patients (id, full_name, patient_id, phone)')
+        .eq('visit_date', today)
+        .in('status', ['Waiting', 'Active'])
+    ).order('queue_position', { ascending: true }),
   ]);
 
   if (patientsRes.error) throw patientsRes.error;
@@ -58,13 +67,19 @@ export async function fetchAdminOverview(today: string) {
   };
 }
 
-export async function fetchDoctorPatientStats(today: string): Promise<DoctorPatientStats[]> {
-  const { data: completed, error: tokensErr } = await supabase
+export async function fetchDoctorPatientStats(today: string, hospitalId?: string | null): Promise<DoctorPatientStats[]> {
+  let query = supabase
     .from('tokens')
     .select('assigned_doctor_user_id')
     .eq('visit_date', today)
     .eq('status', 'Completed')
     .not('assigned_doctor_user_id', 'is', null);
+
+  if (hospitalId) {
+    query = query.eq('hospital_id', hospitalId);
+  }
+
+  const { data: completed, error: tokensErr } = await query;
 
   if (tokensErr) throw tokensErr;
 

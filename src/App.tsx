@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@/types/auth";
+import { AccessibilityWidget } from "@/components/accessibility/AccessibilityWidget";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
@@ -42,6 +43,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <AccessibilityWidget />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />

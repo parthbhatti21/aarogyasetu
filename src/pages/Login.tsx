@@ -69,7 +69,7 @@ const Login = () => {
             <div className="flex items-center gap-3">
               <img src={medicalLogo} alt="" className="h-10 w-10" />
               <div>
-                <h2 className="text-xl font-bold text-foreground">Aarogya Setu</h2>
+                <h2 className="text-xl font-bold text-foreground">Aarogya Setu X</h2>
                 <p className="text-xs text-muted-foreground">Hospital Management System</p>
               </div>
             </div>

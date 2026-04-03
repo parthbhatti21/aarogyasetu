@@ -37,13 +37,110 @@ const Section = ({
 export function PlatformOverview() {
   return (
     <div className="space-y-8 pb-4">
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Objective</p>
-        <p className="text-sm text-foreground leading-relaxed">
-          Build a scalable SaaS platform that digitizes hospital operations, reduces patient waiting time,
-          improves transparency, and enables accessibility for all users—including low-literacy
-          patients—using AI.
+      {/* Vision */}
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2 flex items-center gap-1.5">
+          <Target className="h-4 w-4" />
+          Our Vision
         </p>
+        <p className="text-base font-medium text-foreground leading-relaxed mb-2">
+          Transforming Healthcare Access Through Technology
+        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          To revolutionize healthcare delivery by creating an inclusive, AI-powered platform that eliminates 
+          barriers to quality care—making healthcare accessible, transparent, and efficient for everyone, 
+          regardless of literacy levels, language, or technical expertise.
+        </p>
+      </div>
+
+      {/* Mission */}
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-blue-500/5 to-transparent p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+          <HeartPulse className="h-4 w-4" />
+          Our Mission
+        </p>
+        <p className="text-base font-medium text-foreground leading-relaxed mb-3">
+          Empowering Healthcare Through Innovation
+        </p>
+        <ul className="text-sm text-muted-foreground space-y-2.5 list-none">
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+            <span><strong className="text-foreground">Reduce Waiting Times:</strong> Transform patient experience with virtual queues and real-time updates</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+            <span><strong className="text-foreground">Enable Universal Access:</strong> Break language and literacy barriers with AI voice assistance in regional languages</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+            <span><strong className="text-foreground">Digitize Operations:</strong> Streamline hospital workflows from registration to discharge</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+            <span><strong className="text-foreground">Ensure Transparency:</strong> Provide real-time visibility into queue status, doctor availability, and medicine stock</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+            <span><strong className="text-foreground">Optimize Resources:</strong> Leverage AI for intelligent bed allocation and doctor assignment</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Expected Outcomes */}
+      <div className="rounded-xl border border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 mb-2 flex items-center gap-1.5">
+          <Activity className="h-4 w-4" />
+          Expected Outcomes & Impact
+        </p>
+        <p className="text-base font-medium text-foreground leading-relaxed mb-3">
+          Measurable improvements across patient experience, operational efficiency, and healthcare delivery
+        </p>
+        
+        <div className="grid gap-4 sm:grid-cols-2 mb-4">
+          <div className="rounded-lg border bg-background/50 p-4">
+            <p className="text-2xl font-bold text-primary mb-1">30-50%</p>
+            <p className="text-xs text-muted-foreground">Reduction in perceived waiting time</p>
+          </div>
+          <div className="rounded-lg border bg-background/50 p-4">
+            <p className="text-2xl font-bold text-primary mb-1">100%</p>
+            <p className="text-xs text-muted-foreground">Digital record keeping & transparency</p>
+          </div>
+          <div className="rounded-lg border bg-background/50 p-4">
+            <p className="text-2xl font-bold text-primary mb-1">24/7</p>
+            <p className="text-xs text-muted-foreground">AI-assisted patient registration</p>
+          </div>
+          <div className="rounded-lg border bg-background/50 p-4">
+            <p className="text-2xl font-bold text-primary mb-1">Multi-Lingual</p>
+            <p className="text-xs text-muted-foreground">Regional language support</p>
+          </div>
+        </div>
+
+        <ul className="text-sm text-muted-foreground space-y-2.5 list-none">
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Patient Experience:</strong> Virtual waiting rooms eliminate physical queues, SMS/WhatsApp notifications keep patients informed</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Operational Efficiency:</strong> AI-powered resource allocation reduces bottlenecks and optimizes doctor workload</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Accessibility:</strong> Voice-based registration serves illiterate and elderly patients in their native language</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Trust & Transparency:</strong> Real-time queue visibility and digital records build patient confidence</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Revenue Impact:</strong> Increased patient throughput, reduced no-shows, better inventory management</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">●</span>
+            <span><strong className="text-foreground">Compliance:</strong> Digital audit trails for medicine dispensation and prescription tracking</span>
+          </li>
+        </ul>
       </div>
 
       <div>
@@ -152,15 +249,7 @@ export function PlatformOverview() {
         </div>
       </div>
 
-      <Section title="Deployment strategy" icon={Layers}>
-        <ol className="list-decimal pl-4 space-y-1.5">
-          <li>Pilot: registration + token system</li>
-          <li>Onboard one hospital</li>
-          <li>Free trial (7–30 days)</li>
-          <li>Expand doctor and pharmacy modules</li>
-          <li>Scale to multiple hospitals</li>
-        </ol>
-      </Section>
+     
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border p-4">
@@ -186,17 +275,7 @@ export function PlatformOverview() {
         </ul>
       </Section>
 
-      <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
-        <p className="text-xs font-semibold uppercase text-primary mb-2 flex items-center gap-1">
-          <Mic className="h-3.5 w-3.5" /> Deliverables
-        </p>
-        <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-          <li>Fully functional web platform</li>
-          <li>AI voice assistant integration</li>
-          <li>Admin dashboard with analytics</li>
-          <li>Scalable backend infrastructure</li>
-        </ul>
-      </div>
+    
     </div>
   );
 }

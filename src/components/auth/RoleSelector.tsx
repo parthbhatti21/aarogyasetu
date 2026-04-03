@@ -16,6 +16,7 @@ const RoleSelector = ({ selectedRole, onSelect }: RoleSelectorProps) => {
       {ROLE_OPTIONS.map((role) => {
         const Icon = iconMap[role.icon as keyof typeof iconMap];
         const isSelected = selectedRole === role.id;
+        const isPatient = role.id === 'patient';
         return (
           <button
             key={role.id}
@@ -26,6 +27,7 @@ const RoleSelector = ({ selectedRole, onSelect }: RoleSelectorProps) => {
                 ? 'border-primary bg-primary/5 shadow-elevated'
                 : 'border-border bg-card hover:border-primary/40 hover:shadow-card'
               }
+              ${isPatient && !isSelected ? 'patient-login-highlight' : ''}
             `}
           >
             <div className={`p-2.5 rounded-lg transition-colors ${isSelected ? 'gradient-primary' : 'bg-secondary'}`}>
@@ -37,6 +39,14 @@ const RoleSelector = ({ selectedRole, onSelect }: RoleSelectorProps) => {
             <span className="text-[11px] text-muted-foreground text-center leading-tight">
               {role.description}
             </span>
+            {isPatient && !isSelected && (
+              <span className="absolute -top-2 -right-2 flex h-6 w-6">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-6 w-6 bg-primary items-center justify-center text-[10px] text-primary-foreground font-bold">
+                  !
+                </span>
+              </span>
+            )}
           </button>
         );
       })}

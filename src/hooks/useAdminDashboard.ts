@@ -8,7 +8,7 @@ import {
 } from '@/services/adminService';
 import { supabase } from '@/utils/supabase';
 
-export function useAdminDashboard() {
+export function useAdminDashboard(adminUserId?: string) {
   const [today, setToday] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,27 +21,47 @@ export function useAdminDashboard() {
   >([]);
   const [liveQueue, setLiveQueue] = useState<TokenWithPatient[]>([]);
   const [doctorStats, setDoctorStats] = useState<DoctorPatientStats[]>([]);
+  const [hospitalId, setHospitalId] = useState<string | null>(null);
+
+  // Fetch admin's hospital on mount
+  useEffect(() => {
+    const fetchHospitalId = async () => {
+      if (!adminUserId) return;
+      
+      const { data: staffProfile } = await supabase
+        .from('staff_profiles')
+        .select('hospital_id')
+        .eq('user_id', adminUserId)
+        .single();
+
+      if (staffProfile?.hospital_id) {
+        setHospitalId(staffProfile.hospital_id);
+      }
+    };
+
+    fetchHospitalId();
+  }, [adminUserId]);
 
   const refresh = useCallback(async () => {
     const d = await fetchTodayDateString();
     setToday(d);
     setError(null);
     try {
-      const overview = await fetchAdminOverview(d);
+      const overview = await fetchAdminOverview(d, hospitalId);
       setTotalPatients(overview.totalPatients);
       setTokensToday(overview.tokensToday);
       setWaitingOrActive(overview.waitingOrActive);
       setCompletedToday(overview.completedToday);
       setRecentPatients(overview.recentPatients as typeof recentPatients);
       setLiveQueue(overview.liveQueue);
-      const stats = await fetchDoctorPatientStats(d);
+      const stats = await fetchDoctorPatientStats(d, hospitalId);
       setDoctorStats(stats);
     } catch (e: any) {
       setError(e.message || 'Failed to load admin data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hospitalId]);
 
   useEffect(() => {
     refresh();

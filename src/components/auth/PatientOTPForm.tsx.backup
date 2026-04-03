@@ -121,7 +121,43 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
         throw new Error('No authenticated user found');
       }
 
-      // Find existing patient profile for this account
+      // Get current user from Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+
+      // Store selected hospital in session storage for later use during token creation
+      sessionStorage.setItem('selected_hospital_id', selectedHospital.id);
+      sessionStorage.setItem('selected_hospital_name', selectedHospital.hospital_name);
+
+      login('patient', {
+        name: patientProfile.full_name,
+        email: patientProfile.email || user.email || email,
+        phone: patientProfile.phone,
+        patientId: patientProfile.patient_id,
+      });
+
+      // Wait a moment for session to persist to localStorage
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      toast({ 
+        title: authMode === 'signup' ? 'Account created!' : 'Welcome back!',
+        description: `You've selected ${selectedHospital.hospital_name}`,
+      });
+      navigate('/patient');
+      
+    } catch (error: any) {
+      console.error('Hospital selection error:', error);
+      toast({ 
+        title: 'Failed to complete registration', 
+        description: error.message || 'Please try again.',
+        variant: 'destructive' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
       const { data: existingPatient, error: existingPatientError } = await supabase
         .from('patients')
         .select('id, patient_id, full_name, phone, email')
@@ -167,10 +203,6 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
         throw new Error('No patient account found for this email. Please sign up first.');
       }
 
-      // Store selected hospital in session storage for later use during token creation
-      sessionStorage.setItem('selected_hospital_id', selectedHospital.id);
-      sessionStorage.setItem('selected_hospital_name', selectedHospital.hospital_name);
-
       login('patient', {
         name: patientProfile.full_name,
         email: patientProfile.email || user.email || email,
@@ -183,15 +215,15 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
 
       toast({ 
         title: authMode === 'signup' ? 'Account created!' : 'Welcome back!',
-        description: `You've selected ${selectedHospital.hospital_name}`,
+        description: authMode === 'signup' ? 'Your account is ready.' : 'Login successful.',
       });
       navigate('/patient');
       
     } catch (error: any) {
-      console.error('Hospital selection error:', error);
+      console.error('Verify OTP error:', error);
       toast({ 
-        title: 'Failed to complete registration', 
-        description: error.message || 'Please try again.',
+        title: 'Verification failed', 
+        description: error.message || 'Invalid OTP. Please try again.',
         variant: 'destructive' 
       });
     } finally {
@@ -295,43 +327,6 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
             <Button variant="outline" onClick={() => setStep('email')} className="flex-1">Back</Button>
             <Button onClick={handleVerifyOTP} className="flex-1 gradient-primary text-primary-foreground" disabled={loading}>
               {loading ? 'Verifying...' : <><ArrowRight className="h-4 w-4 mr-2" /> Verify</>}
-            </Button>
-          </div>
-        </>
-      )}
-
-      {step === 'hospital' && (
-        <>
-          <div className="text-center space-y-2 pb-2">
-            <h3 className="text-lg font-semibold">Select Your Hospital</h3>
-            <p className="text-sm text-muted-foreground">
-              Choose the hospital where you want to receive care
-            </p>
-          </div>
-          
-          <HospitalSelector
-            onHospitalSelect={setSelectedHospital}
-            selectedHospitalId={selectedHospital?.id}
-          />
-
-          {selectedHospital && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-blue-900">Selected Hospital:</p>
-              <p className="text-sm text-blue-800">{selectedHospital.hospital_name}</p>
-              {selectedHospital.district && (
-                <p className="text-xs text-blue-600">{selectedHospital.district}, {selectedHospital.state}</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep('otp')} className="flex-1">Back</Button>
-            <Button 
-              onClick={handleHospitalSelection} 
-              className="flex-1 gradient-primary text-primary-foreground" 
-              disabled={loading || !selectedHospital}
-            >
-              {loading ? 'Processing...' : <><ArrowRight className="h-4 w-4 mr-2" /> Continue</>}
             </Button>
           </div>
         </>

@@ -137,11 +137,15 @@ const PatientDashboard = () => {
       throw tokenNumberError;
     }
 
+    // Get selected hospital from session storage
+    const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
+
     const { data: newToken, error: createTokenError } = await supabase
       .from('tokens')
       .insert({
         token_number: tokenNumber,
         patient_id: patientDbId,
+        hospital_id: selectedHospitalId || null,
         visit_type: payload.visitType,
         chief_complaint: payload.chiefComplaint,
         symptoms: payload.symptoms,

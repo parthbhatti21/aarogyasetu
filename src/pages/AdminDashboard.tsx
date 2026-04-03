@@ -35,6 +35,20 @@ const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Get user_id from Supabase session for hospital filtering
+  const [adminUserId, setAdminUserId] = useState<string | undefined>();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        setAdminUserId(currentUser.id);
+      }
+    };
+    getUser();
+  }, []);
+
   const {
     today,
     loading,
@@ -47,7 +61,7 @@ const AdminDashboard = () => {
     liveQueue,
     doctorStats,
     refresh,
-  } = useAdminDashboard();
+  } = useAdminDashboard(adminUserId);
 
   const [showCreateDoctor, setShowCreateDoctor] = useState(false);
   const [doctorRole, setDoctorRole] = useState<'doctor' | 'senior_doctor'>('doctor');

@@ -1,5 +1,16 @@
 // Database types for Aarogya Setu Patient Module
 
+export interface Hospital {
+  id: string;
+  hospital_id: string;
+  hospital_name: string;
+  state: string;
+  district: string | null;
+  sl_no: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Patient {
   id: string;
   patient_id: string;
@@ -45,6 +56,7 @@ export interface Token {
   id: string;
   token_number: string;
   patient_id: string;
+  hospital_id?: string;
   visit_date: string;
   visit_type?: string;
   department?: string;

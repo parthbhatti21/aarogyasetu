@@ -17,7 +17,17 @@ export interface PatientClinicalData {
 export async function getDoctorQueue(doctorUserId: string) {
   const today = new Date().toISOString().split('T')[0];
 
-  const { data, error } = await supabase
+  // First, get the doctor's hospital_id from staff_profiles
+  const { data: staffProfile, error: staffError } = await supabase
+    .from('staff_profiles')
+    .select('hospital_id')
+    .eq('user_id', doctorUserId)
+    .single();
+
+  if (staffError) throw staffError;
+
+  // Build query to get tokens
+  let query = supabase
     .from('tokens')
     .select('*, patients (id, full_name, age, gender, phone, email)')
     .eq('visit_date', today)
@@ -25,6 +35,13 @@ export async function getDoctorQueue(doctorUserId: string) {
     .or(`assigned_doctor_user_id.eq.${doctorUserId},assigned_doctor_user_id.is.null`)
     .order('status', { ascending: true })
     .order('queue_position', { ascending: true });
+
+  // Filter by hospital if doctor has a hospital assignment
+  if (staffProfile?.hospital_id) {
+    query = query.eq('hospital_id', staffProfile.hospital_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data || []) as DoctorQueueToken[];

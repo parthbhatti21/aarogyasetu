@@ -15,6 +15,7 @@
 
     --primary: 174 62% 38%;
     --primary-foreground: 0 0% 100%;
+    --primary-rgb: 36, 153, 133;
 
     --secondary: 200 25% 94%;
     --secondary-foreground: 210 40% 11%;
@@ -138,4 +139,101 @@
 
 .animate-pulse-gentle {
   animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+/* Accessibility Features */
+.highlight-links a {
+  background-color: rgba(255, 255, 0, 0.3) !important;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+}
+
+.dyslexia-font,
+.dyslexia-font * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', Arial, sans-serif !important;
+}
+
+.hide-images img,
+.hide-images svg,
+.hide-images [role="img"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.large-cursor,
+.large-cursor * {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="black" stroke="white" stroke-width="2"/></svg>') 16 16, auto !important;
+}
+
+/* Google Translate Customization */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+#google_translate_element {
+  display: none !important;
+}
+
+.goog-te-gadget {
+  display: none !important;
+}
+
+/* Hide Google Translate top bar */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+body > .skiptranslate {
+  display: none !important;
+}
+
+iframe.skiptranslate {
+  display: none !important;
+}
+
+/* Patient Login Highlight Animation */
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.7);
+    border-color: hsl(var(--primary));
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(var(--primary-rgb), 0);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.patient-login-highlight {
+  animation: pulse-highlight 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  position: relative;
+}
+
+.patient-login-highlight::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 1rem;
+  background: linear-gradient(45deg, 
+    hsl(var(--primary)) 0%, 
+    hsl(var(--accent)) 50%, 
+    hsl(var(--primary)) 100%);
+  background-size: 200% 200%;
+  animation: glow 3s ease infinite;
+  z-index: -1;
+  opacity: 0.3;
+  filter: blur(8px);
 }
