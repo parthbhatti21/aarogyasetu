@@ -14,6 +14,7 @@ import {
 import { logMedicalAudit } from '@/services/auditService';
 import type { Medication, PatientClinicalData } from '@/services/doctorService';
 import { useToast } from '@/hooks/use-toast';
+import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 
 const DoctorDashboard = () => {
   const { user, role, supabaseUser, logout } = useAuth();
@@ -205,7 +206,7 @@ const DoctorDashboard = () => {
                   </div>
                   <p className="text-sm">{token.patients?.full_name || 'Unknown patient'}</p>
                   <p className="text-xs text-muted-foreground">
-                    {token.chief_complaint || 'No complaint captured'} • Q #{token.queue_position || '-'}
+                    {formatChiefComplaintForQueue(token.chief_complaint, token.symptoms) || 'No complaint captured'} • Q #{token.queue_position || '-'}
                     {token.assigned_doctor_user_id ? ' • Assigned' : ' • Open'}
                   </p>
                 </button>
@@ -228,7 +229,10 @@ const DoctorDashboard = () => {
                   <p className="text-sm text-muted-foreground">
                     {patientData?.profile?.gender || selectedToken.patients?.gender || 'Unknown'} • Age {patientData?.profile?.age || selectedToken.patients?.age || '-'} • {patientData?.profile?.phone || selectedToken.patients?.phone || '-'}
                   </p>
-                  <p className="text-sm mt-2">Chief complaint: {selectedToken.chief_complaint || 'N/A'}</p>
+                  <p className="text-sm mt-2">
+                    Chief complaint:{' '}
+                    {formatChiefComplaintForQueue(selectedToken.chief_complaint, selectedToken.symptoms) || 'N/A'}
+                  </p>
                 </div>
 
                 <div>

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, Users, Activity, CheckCircle2 } from 'lucide-react';
 import type { Token } from '@/types/database';
+import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 
 interface VirtualWaitingRoomProps {
   currentToken: Token | null;
@@ -93,10 +94,12 @@ export function VirtualWaitingRoom({
               </div>
             )}
 
-            {currentToken.chief_complaint && (
+            {(currentToken.chief_complaint || (currentToken.symptoms?.length ?? 0) > 0) && (
               <div className="mt-4 p-3 bg-muted rounded-lg text-left">
                 <p className="text-xs text-muted-foreground mb-1">Reason for Visit</p>
-                <p className="text-sm">{currentToken.chief_complaint}</p>
+                <p className="text-sm">
+                  {formatChiefComplaintForQueue(currentToken.chief_complaint, currentToken.symptoms)}
+                </p>
               </div>
             )}
           </div>
@@ -178,9 +181,9 @@ export function VirtualWaitingRoom({
                   </div>
                   <div>
                     <p className="font-semibold">{token.token_number}</p>
-                    {token.chief_complaint && (
-                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {token.chief_complaint}
+                    {(token.chief_complaint || (token.symptoms?.length ?? 0) > 0) && (
+                      <p className="text-xs text-muted-foreground truncate max-w-[220px] sm:max-w-xs">
+                        {formatChiefComplaintForQueue(token.chief_complaint, token.symptoms)}
                       </p>
                     )}
                   </div>

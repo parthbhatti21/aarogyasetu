@@ -9,6 +9,7 @@ import { signUpWithPassword } from '@/utils/auth';
 import { supabase } from '@/utils/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
+import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 
 interface DoctorProfile {
   id: string;
@@ -216,7 +217,9 @@ const AdminDashboard = () => {
                       <p className="text-muted-foreground">
                         {t.patients?.full_name || 'Unknown'} · {t.patients?.patient_id || '—'}
                       </p>
-                      <p className="text-xs text-muted-foreground">{t.chief_complaint || 'No complaint'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatChiefComplaintForQueue(t.chief_complaint, t.symptoms) || 'No complaint'}
+                      </p>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-medium">{t.status}</span>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AITokenIntakeChat } from '@/components/patient/AITokenIntakeChat';
+import { AITokenIntakeChat, type IntakePreview } from '@/components/patient/AITokenIntakeChat';
 import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
 import { NotificationsPanel } from '@/components/patient/NotificationsPanel';
 import { useQueue } from '@/hooks/useQueue';
@@ -30,6 +30,15 @@ const PatientDashboard = () => {
   const [creatingToken, setCreatingToken] = useState(false);
   const [manualChiefComplaint, setManualChiefComplaint] = useState('general');
   const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [aiReasonPreview, setAiReasonPreview] = useState<string | null>(null);
+  const [aiSymptomsPreview, setAiSymptomsPreview] = useState<string[]>([]);
+  const [aiIntakeReady, setAiIntakeReady] = useState(false);
+
+  const handleIntakePreview = useCallback((preview: IntakePreview) => {
+    setAiReasonPreview(preview.chiefComplaint.trim() || null);
+    setAiSymptomsPreview(preview.symptoms);
+    setAiIntakeReady(preview.ready);
+  }, []);
 
   const MANUAL_VISIT_CHIEF: { value: string; label: string }[] = [
     { value: 'general', label: 'General consultation' },
@@ -156,14 +165,35 @@ const PatientDashboard = () => {
   const handleGetToken = async () => {
     setCreatingToken(true);
     try {
-      const opt = MANUAL_VISIT_CHIEF.find((o) => o.value === manualChiefComplaint);
-      const chiefComplaint = opt?.label || 'General consultation';
+      let chiefComplaint: string;
+      let symptoms: string[];
+
+      if (aiIntakeReady && aiReasonPreview?.trim()) {
+        chiefComplaint = aiReasonPreview.trim();
+        symptoms = [...aiSymptomsPreview];
+      } else {
+        if (manualChiefComplaint === 'general') {
+          toast({
+            title: 'Choose a visit reason',
+            description: 'Use AI Token Generator to describe your visit, or pick a specific reason from the list (not General consultation).',
+            variant: 'destructive',
+          });
+          return;
+        }
+        const opt = MANUAL_VISIT_CHIEF.find((o) => o.value === manualChiefComplaint);
+        chiefComplaint = opt?.label || 'General consultation';
+        symptoms = [];
+      }
 
       const tokenNumber = await createTokenForPatient({
         chiefComplaint,
-        symptoms: [],
+        symptoms,
         visitType: 'General Consultation',
       });
+
+      setAiReasonPreview(null);
+      setAiSymptomsPreview([]);
+      setAiIntakeReady(false);
 
       await refresh();
       toast({
@@ -263,9 +293,25 @@ const PatientDashboard = () => {
               <p className="text-gray-600">Real-time queue updates and token status</p>
             </div>
 
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-4 max-w-xl">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Reason for visit (from AI chat)</label>
+                <div
+                  className={`rounded-md border px-3 py-2 text-sm min-h-[42px] flex items-center ${
+                    aiReasonPreview ? 'bg-white border-gray-200' : 'bg-gray-50 border-dashed text-gray-500'
+                  }`}
+                >
+                  {aiReasonPreview || 'Open AI Token Generator and describe your symptoms — this fills in automatically.'}
+                </div>
+                {aiReasonPreview && (
+                  <p className="text-xs text-gray-500">
+                    {aiIntakeReady ? 'Ready for token — you can use Get Token or finish in AI to generate.' : 'Add a bit more detail until this is marked valid in the AI window.'}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-2 min-w-[220px]">
-                <label className="text-sm font-medium text-gray-700">Reason for visit</label>
+                <label className="text-sm font-medium text-gray-700">Or choose manually</label>
                 <Select
                   value={manualChiefComplaint}
                   onValueChange={setManualChiefComplaint}
@@ -283,7 +329,15 @@ const PatientDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleGetToken} disabled={creatingToken || !isRegistered || !!currentToken}>
+              <Button
+                onClick={handleGetToken}
+                disabled={
+                  creatingToken ||
+                  !isRegistered ||
+                  !!currentToken ||
+                  (!aiIntakeReady && manualChiefComplaint === 'general')
+                }
+              >
                 <Ticket className="h-4 w-4 mr-2" />
                 Get Token
               </Button>
@@ -295,6 +349,7 @@ const PatientDashboard = () => {
                 <Wand2 className="h-4 w-4 mr-2" />
                 AI Token Generator
               </Button>
+              </div>
             </div>
 
             {patientDbId && (
@@ -303,7 +358,11 @@ const PatientDashboard = () => {
                 onOpenChange={setAiChatOpen}
                 patientId={patientDbId}
                 createToken={createTokenForPatient}
+                onPreviewChange={handleIntakePreview}
                 onComplete={async (tokenNumber) => {
+                  setAiReasonPreview(null);
+                  setAiSymptomsPreview([]);
+                  setAiIntakeReady(false);
                   await refresh();
                   toast({
                     title: 'AI token generated',

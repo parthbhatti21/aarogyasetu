@@ -1,4 +1,5 @@
 import type { CohereAIChatService } from '@/services/cohereAIService';
+import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 
 const TRIVIAL = /^(hi|hello|hey|ok|okay|yes|no|thanks|thank you|bye|good morning|gm)\.?$/i;
 
@@ -14,20 +15,22 @@ function isSubstantiveUserText(text: string): boolean {
  */
 export function buildDisplayChiefComplaint(service: CohereAIChatService): string {
   const extracted = service.extractPatientData();
-  const chief = extracted.chief_complaint?.trim();
-  if (chief && chief.length >= 10 && !TRIVIAL.test(chief)) {
-    return chief;
+  if (extracted.symptoms?.length) {
+    return extracted.symptoms.slice(0, 4).join(', ');
+  }
+  if (extracted.chief_complaint?.trim()) {
+    return formatChiefComplaintForQueue(extracted.chief_complaint, extracted.symptoms);
   }
 
   const users = service.getHistory().filter((m) => m.role === 'user');
   const substantive = users.filter((m) => isSubstantiveUserText(m.content));
   if (substantive.length > 0) {
     const last = substantive[substantive.length - 1];
-    return last.content.trim();
+    return formatChiefComplaintForQueue(last.content.trim(), undefined);
   }
 
   const lastUser = users[users.length - 1];
-  return lastUser?.content.trim() || '';
+  return lastUser ? formatChiefComplaintForQueue(lastUser.content.trim(), undefined) : '';
 }
 
 export function validateIntakeForToken(service: CohereAIChatService): { ok: boolean; message?: string } {
