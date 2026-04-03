@@ -62,12 +62,12 @@ export class CohereAIChatService {
         body: JSON.stringify({
           message: userMessage,
           chat_history: chatHistory,
-          model: 'command',
+          model: 'command-a-03-2025',
           temperature: 0.7,
           preamble: `You are a helpful medical assistant helping patients describe their symptoms. 
 Ask clarifying questions about their symptoms, duration, severity, and any other relevant health information.
 Be empathetic and professional. Keep responses concise and focused on gathering medical information.
-After gathering enough information, summarize the chief complaint and symptoms in a clear, structured way.`,
+After gathering enough information, summarize the chief complaint and symptoms in a clear, structured way. give simple response without any explanation or any other text and symbols or any other characters`,
         }),
       });
 

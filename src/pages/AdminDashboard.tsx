@@ -3,12 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope } from 'lucide-react';
-import { useState } from 'react';
+import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { signUpWithPassword } from '@/utils/auth';
 import { supabase } from '@/utils/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
+
+interface DoctorProfile {
+  id: string;
+  user_id: string;
+  display_name: string;
+  role: 'doctor' | 'senior_doctor';
+  specialty?: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) => (
   <div className="bg-card rounded-xl p-5 shadow-card border border-border">
@@ -45,6 +55,12 @@ const AdminDashboard = () => {
   const [doctorPassword, setDoctorPassword] = useState('');
   const [doctorSpecialty, setDoctorSpecialty] = useState<string>('general');
   const [creatingDoctor, setCreatingDoctor] = useState(false);
+  
+  // Doctor list states
+  const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
 
   const DOCTOR_SPECIALTIES = [
     { value: 'general', label: 'General Practice' },
@@ -56,6 +72,41 @@ const AdminDashboard = () => {
     { value: 'followup', label: 'Follow-up & Continuity Care' },
     { value: 'chronic', label: 'Chronic Disease Management' },
   ];
+
+  // Fetch doctors
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    try {
+      const { data, error } = await supabase
+        .from('staff_profiles')
+        .select('*')
+        .in('role', ['doctor', 'senior_doctor'])
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setDoctors(data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch doctors:', err);
+      toast({
+        title: 'Failed to load doctors',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  // Filter doctors
+  const filteredDoctors = doctors.filter(doc => {
+    if (specialtyFilter !== 'all' && doc.specialty !== specialtyFilter) return false;
+    if (roleFilter !== 'all' && doc.role !== roleFilter) return false;
+    return true;
+  });
 
   const handleCreateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();

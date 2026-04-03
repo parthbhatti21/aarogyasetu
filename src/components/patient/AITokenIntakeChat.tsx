@@ -12,55 +12,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { createCohereAIChatService, type ExtractedPatientData, CohereAIChatService } from '@/services/cohereAIService';
 import { Loader2, Send } from 'lucide-react';
 
-function tryParseJsonFromText(text: string): Partial<ExtractedPatientData> | null {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = fenced ? fenced[1].trim() : text.trim();
-  try {
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === 'object') return obj as Partial<ExtractedPatientData>;
-  } catch {
-    const brace = text.match(/\{[\s\S]*\}/);
-    if (brace) {
-      try {
-        const obj = JSON.parse(brace[0]);
-        if (obj && typeof obj === 'object') return obj as Partial<ExtractedPatientData>;
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-  return null;
-}
-
-function buildIntakeFromChat(service: AIChatService): {
+function buildIntakeFromChat(service: CohereAIChatService): {
   chief_complaint: string;
   symptoms: string[];
   extracted: Record<string, unknown>;
 } {
-  const lastAssistant = [...service.getHistory()].reverse().find((m) => m.role === 'assistant');
-  const fromJson = lastAssistant ? tryParseJsonFromText(lastAssistant.content) : null;
-  const heuristic = service.extractPatientData();
+  const extracted = service.extractPatientData();
 
-  const chief =
-    (typeof fromJson?.chief_complaint === 'string' && fromJson.chief_complaint.trim()) ||
-    (heuristic.chief_complaint?.trim() || '') ||
-    'AI-assisted consultation';
+  const chief = extracted.chief_complaint?.trim() || 'AI-assisted consultation';
+  const symptoms = extracted.symptoms || [];
 
-  const symptoms =
-    Array.isArray(fromJson?.symptoms) && fromJson.symptoms.length > 0
-      ? (fromJson.symptoms as string[]).map((s) => String(s).trim()).filter(Boolean)
-      : heuristic.symptoms || [];
-
-  const extracted: Record<string, unknown> = {
-    ...heuristic,
-    ...(fromJson || {}),
+  const fullExtracted: Record<string, unknown> = {
+    ...extracted,
     chief_complaint: chief,
     symptoms,
     source: 'ai_token_intake',
     generated_at: new Date().toISOString(),
   };
 
-  return { chief_complaint: chief, symptoms, extracted };
+  return { chief_complaint: chief, symptoms, extracted: fullExtracted };
 }
 
 type Props = {
@@ -83,14 +53,14 @@ export function AITokenIntakeChat({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
-  const serviceRef = useRef<AIChatService | null>(null);
+  const serviceRef = useRef<CohereAIChatService | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [, setVersion] = useState(0);
   const bump = () => setVersion((v) => v + 1);
 
   useEffect(() => {
     if (open) {
-      serviceRef.current = createAIChatService(undefined, 'en');
+      serviceRef.current = createCohereAIChatService();
       setInput('');
       bump();
     } else {
