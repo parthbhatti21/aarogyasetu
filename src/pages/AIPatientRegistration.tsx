@@ -86,7 +86,7 @@ const AIPatientRegistration = () => {
           description: 'Please log in again to continue registration.',
           variant: 'destructive',
         });
-        navigate('/patient/login');
+        navigate('/');
       }
     };
 

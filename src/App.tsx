@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import type { ReactNode } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import type { UserRole } from "@/types/auth";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
@@ -16,6 +18,24 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const ProtectedRoute = ({ roles, children }: { roles: UserRole[]; children: ReactNode }) => {
+  const { loading, isAuthenticated, role } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!isAuthenticated || !role) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!roles.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -26,12 +46,13 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/patient/register" element={<AIPatientRegistration />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/doctor" element={<DoctorDashboard />} />
-            <Route path="/registration" element={<RegistrationDashboard />} />
-            <Route path="/patient" element={<PatientDashboard />} />
-            <Route path="/store-admin" element={<MedicalStoreAdminDashboard />} />
-            <Route path="/store-sales" element={<MedicalStoreSalesDashboard />} />
+            <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/doctor" element={<ProtectedRoute roles={['doctor']}><DoctorDashboard /></ProtectedRoute>} />
+            <Route path="/senior-doctor" element={<ProtectedRoute roles={['senior_doctor']}><DoctorDashboard /></ProtectedRoute>} />
+            <Route path="/registration" element={<ProtectedRoute roles={['registration_desk']}><RegistrationDashboard /></ProtectedRoute>} />
+            <Route path="/patient" element={<ProtectedRoute roles={['patient']}><PatientDashboard /></ProtectedRoute>} />
+            <Route path="/store-admin" element={<ProtectedRoute roles={['medical_store_admin']}><MedicalStoreAdminDashboard /></ProtectedRoute>} />
+            <Route path="/store-sales" element={<ProtectedRoute roles={['medical_store_sales']}><MedicalStoreSalesDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,0 +1,260 @@
+{
+  "name": "Phase 5: Notifications System",
+  "description": "Multi-channel notification system with Email, SMS, and WhatsApp support",
+  "version": "1.0.0",
+  "status": "✅ Implemented",
+  "components": {
+    "frontend": [
+      {
+        "name": "NotificationsPanel",
+        "path": "src/components/patient/NotificationsPanel.tsx",
+        "description": "Main notification UI with real-time updates",
+        "features": [
+          "Real-time notification display",
+          "Mark as read functionality",
+          "Notification type badges",
+          "Delivery channel indicators",
+          "Auto-refresh on new notifications"
+        ]
+      },
+      {
+        "name": "useNotifications hook",
+        "path": "src/hooks/useNotifications.ts",
+        "description": "React hook for notification management",
+        "features": [
+          "Fetch notifications",
+          "Real-time subscriptions",
+          "Mark as read",
+          "Unread count",
+          "Error handling"
+        ]
+      }
+    ],
+    "backend": [
+      {
+        "name": "notificationService",
+        "path": "src/services/notificationService.ts",
+        "description": "Service layer for notification operations",
+        "methods": [
+          "createNotification()",
+          "sendNotification()",
+          "sendAppointmentReminder()",
+          "sendTokenUpdate()",
+          "sendPrescriptionReady()",
+          "sendLabReportReady()",
+          "markAsRead()",
+          "getUnreadCount()"
+        ]
+      },
+      {
+        "name": "notificationIntegrations",
+        "path": "src/services/notificationIntegrations.ts",
+        "description": "Example integrations with existing features",
+        "examples": [
+          "createTokenWithNotification()",
+          "updateTokenStatusWithNotification()",
+          "sendAppointmentReminders()",
+          "notifyPrescriptionReady()",
+          "notifyLabReportReady()"
+        ]
+      }
+    ],
+    "edge_functions": [
+      {
+        "name": "email-notification",
+        "path": "supabase/functions/email-notification/",
+        "description": "Supabase Edge Function for sending emails via Gmail SMTP",
+        "features": [
+          "Gmail SMTP integration",
+          "HTML email templates",
+          "Email validation",
+          "Error handling",
+          "Delivery logging"
+        ]
+      }
+    ],
+    "database": [
+      {
+        "name": "notifications table",
+        "description": "Stores all patient notifications",
+        "columns": [
+          "id (UUID)",
+          "patient_id (FK)",
+          "type (enum)",
+          "title (text)",
+          "message (text)",
+          "send_email (boolean)",
+          "send_sms (boolean)",
+          "send_whatsapp (boolean)",
+          "send_push (boolean)",
+          "status (enum: Pending, Sent, Failed, Read)",
+          "sent_at (timestamp)",
+          "read_at (timestamp)",
+          "related_entity_type (text)",
+          "related_entity_id (text)",
+          "created_at (timestamp)"
+        ]
+      },
+      {
+        "name": "email_logs table",
+        "description": "Tracks email delivery for debugging",
+        "columns": [
+          "id (UUID)",
+          "recipient (text)",
+          "subject (text)",
+          "body (text)",
+          "status (text)",
+          "external_id (text)",
+          "sent_at (timestamp)",
+          "created_at (timestamp)"
+        ]
+      }
+    ]
+  },
+  "notification_types": [
+    {
+      "type": "Token Update",
+      "description": "Queue token status changes",
+      "channels": ["push", "email (optional)"],
+      "example": "Your token A-042 is now active"
+    },
+    {
+      "type": "Appointment Reminder",
+      "description": "Upcoming appointment reminders",
+      "channels": ["email", "sms", "push"],
+      "example": "Appointment tomorrow at 10:00 AM in Cardiology"
+    },
+    {
+      "type": "Prescription Ready",
+      "description": "Prescription available for pickup",
+      "channels": ["email", "sms"],
+      "example": "Your prescription is ready at the pharmacy"
+    },
+    {
+      "type": "Lab Report Ready",
+      "description": "Lab test results available",
+      "channels": ["email", "push"],
+      "example": "Your lab results are now available"
+    },
+    {
+      "type": "General",
+      "description": "General system notifications",
+      "channels": ["email", "push"],
+      "example": "Welcome to Aarogya Setu!"
+    }
+  ],
+  "delivery_channels": {
+    "email": {
+      "status": "✅ Implemented",
+      "provider": "Gmail SMTP",
+      "features": [
+        "HTML templates",
+        "Personalization",
+        "Delivery tracking"
+      ]
+    },
+    "sms": {
+      "status": "🚧 Planned",
+      "provider": "Twilio / AWS SNS",
+      "notes": "Scaffold ready in notificationService.ts"
+    },
+    "whatsapp": {
+      "status": "🚧 Planned",
+      "provider": "Twilio / WhatsApp Business API",
+      "notes": "Scaffold ready in notificationService.ts"
+    },
+    "push": {
+      "status": "🚧 Planned",
+      "provider": "Firebase Cloud Messaging",
+      "notes": "In-app notifications implemented"
+    }
+  },
+  "setup": {
+    "prerequisites": [
+      "Supabase CLI installed",
+      "Gmail account with 2-Step Verification",
+      "Gmail App Password generated"
+    ],
+    "steps": [
+      "Run setup-notifications.sh script",
+      "Or manually configure Gmail credentials as Supabase secrets",
+      "Apply database migrations",
+      "Deploy email-notification edge function",
+      "Test with sample notification"
+    ],
+    "files": [
+      "NOTIFICATIONS_SETUP.md - Detailed setup guide",
+      "setup-notifications.sh - Automated setup script",
+      "supabase/migrations/20260403_create_notifications.sql - Database schema"
+    ]
+  },
+  "security": {
+    "row_level_security": "Enabled on all tables",
+    "policies": [
+      "Patients can view only their own notifications",
+      "Patients can update their own notifications (mark as read)",
+      "Service role has full access (for edge functions)",
+      "Admins can view email logs"
+    ],
+    "secrets": [
+      "GMAIL_EMAIL - Stored in Supabase secrets",
+      "GMAIL_APP_PASSWORD - Stored in Supabase secrets (not regular password!)"
+    ]
+  },
+  "testing": {
+    "unit_tests": "Add tests for notificationService methods",
+    "integration_tests": "Test edge function with real Gmail account",
+    "e2e_tests": "Test full notification flow from UI to email delivery",
+    "commands": [
+      "supabase functions serve email-notification",
+      "curl test with sample payload",
+      "Check logs: supabase functions logs email-notification"
+    ]
+  },
+  "future_enhancements": [
+    "SMS integration with Twilio",
+    "WhatsApp integration",
+    "Push notifications with FCM",
+    "Notification preferences UI",
+    "Scheduled notifications (cron jobs)",
+    "Rich email templates",
+    "Notification history and archive",
+    "Delivery analytics",
+    "Retry mechanism for failed sends",
+    "Rate limiting",
+    "Unsubscribe functionality"
+  ],
+  "integration_examples": [
+    {
+      "scenario": "Token Creation",
+      "description": "Send notification when patient creates a token",
+      "code": "See notificationIntegrations.ts -> createTokenWithNotification()"
+    },
+    {
+      "scenario": "Token Status Update",
+      "description": "Notify patient when their token is called",
+      "code": "See notificationIntegrations.ts -> updateTokenStatusWithNotification()"
+    },
+    {
+      "scenario": "Appointment Reminders",
+      "description": "Send reminders 24 hours before appointment",
+      "code": "See notificationIntegrations.ts -> sendAppointmentReminders()"
+    },
+    {
+      "scenario": "Prescription Ready",
+      "description": "Notify when prescription is ready for pickup",
+      "code": "See notificationIntegrations.ts -> notifyPrescriptionReady()"
+    },
+    {
+      "scenario": "Lab Report Available",
+      "description": "Alert patient when lab results are ready",
+      "code": "See notificationIntegrations.ts -> notifyLabReportReady()"
+    }
+  ],
+  "documentation": [
+    "NOTIFICATIONS_SETUP.md - Complete setup and usage guide",
+    "supabase/functions/email-notification/README.md - Edge function documentation",
+    "Inline JSDoc comments in all service files",
+    "TypeScript types in database.ts"
+  ]
+}

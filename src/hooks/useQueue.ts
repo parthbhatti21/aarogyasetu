@@ -33,7 +33,7 @@ export function useQueue(options: UseQueueOptions = {}) {
         .in('status', ['Waiting', 'Active'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       
@@ -53,7 +53,7 @@ export function useQueue(options: UseQueueOptions = {}) {
         .eq('status', 'Active')
         .order('called_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       

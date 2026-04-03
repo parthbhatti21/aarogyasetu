@@ -15,3 +15,8 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     storageKey: 'aarogya-setu-auth',
   },
 });
+if (import.meta.env.DEV) {
+  // Only in development
+  (window as any).supabase = supabase;
+  console.log("[Dev] Supabase client exposed as window.supabase");
+}

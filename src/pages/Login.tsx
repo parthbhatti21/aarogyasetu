@@ -86,7 +86,7 @@ const Login = () => {
                   Sign in as {roleConfig?.label}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedRole === 'patient' ? 'Verify with your mobile number' : 'Enter your credentials'}
+                  {selectedRole === 'patient' ? 'Register or sign in with your details and email OTP' : 'Enter your credentials'}
                 </p>
               </div>
               {selectedRole === 'patient' ? (

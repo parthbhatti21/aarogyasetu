@@ -53,6 +53,12 @@ export interface Token {
   queue_position?: number;
   called_at?: string;
   completed_at?: string;
+  assigned_doctor_user_id?: string;
+  consultation_started_at?: string;
+  consultation_ended_at?: string;
+  consultation_disposition?: 'Completed' | 'Admitted' | 'Follow-up';
+  follow_up_date?: string;
+  follow_up_notes?: string;
   ai_conversation_summary?: string;
   chief_complaint?: string;
   symptoms?: string[];
@@ -182,6 +188,28 @@ export interface AIConversation {
   token_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface StaffProfile {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'doctor' | 'senior_doctor' | 'registration_desk' | 'medical_store_admin' | 'medical_store_sales';
+  display_name: string;
+  department?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actor_user_id?: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  patient_id?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
 }
 
 export interface QueueCounter {

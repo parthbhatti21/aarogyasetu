@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Mail, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +15,10 @@ interface PatientOTPFormProps {
 }
 
 const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +27,19 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
   const { toast } = useToast();
 
   const handleSendOTP = async () => {
+    if (authMode === 'signup') {
+      if (!fullName.trim()) {
+        toast({ title: 'Enter your full name', variant: 'destructive' });
+        return;
+      }
+
+      const digitsOnlyPhone = phone.replace(/\D/g, '');
+      if (digitsOnlyPhone.length < 10) {
+        toast({ title: 'Enter a valid mobile number', variant: 'destructive' });
+        return;
+      }
+    }
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast({ title: 'Enter a valid email address', variant: 'destructive' });
       return;
@@ -31,7 +47,7 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
     
     setLoading(true);
     try {
-      const { error } = await sendOTPToEmail(email);
+      const { error } = await sendOTPToEmail(email, authMode === 'signup');
       
       if (error) {
         throw error;
@@ -73,16 +89,67 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
       // Store Supabase session in context
       setSupabaseSession(user, session);
 
+      // Find existing patient profile for this account
+      const { data: existingPatient, error: existingPatientError } = await supabase
+        .from('patients')
+        .select('id, patient_id, full_name, phone, email')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingPatientError) {
+        throw existingPatientError;
+      }
+
+      let patientProfile = existingPatient;
+
+      if (!patientProfile && authMode === 'signup') {
+        const { data: patientIdData, error: patientIdError } = await supabase.rpc('generate_patient_id');
+        if (patientIdError) {
+          throw patientIdError;
+        }
+
+        const digitsOnlyPhone = phone.replace(/\D/g, '');
+        const normalizedPhone = digitsOnlyPhone.length === 10 ? `+91${digitsOnlyPhone}` : phone;
+
+        const { data: createdPatient, error: createPatientError } = await supabase
+          .from('patients')
+          .insert({
+            patient_id: patientIdData,
+            full_name: fullName.trim(),
+            phone: normalizedPhone,
+            email: user.email || email,
+            user_id: user.id,
+            preferred_language: 'en',
+          })
+          .select('id, patient_id, full_name, phone, email')
+          .single();
+
+        if (createPatientError) {
+          throw createPatientError;
+        }
+
+        patientProfile = createdPatient;
+      }
+
+      if (!patientProfile && authMode === 'login') {
+        throw new Error('No patient account found for this email. Please sign up first.');
+      }
+
+      login('patient', {
+        name: patientProfile.full_name,
+        email: patientProfile.email || user.email || email,
+        phone: patientProfile.phone,
+        patientId: patientProfile.patient_id,
+      });
+
       // Wait a moment for session to persist to localStorage
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // For new patient registration, always go to registration page
-      // We'll check if patient exists DURING registration submission
       toast({ 
-        title: 'Email Verified!',
-        description: 'Let\'s complete your registration with our AI assistant.',
+        title: authMode === 'signup' ? 'Account created!' : 'Welcome back!',
+        description: authMode === 'signup' ? 'Your account is ready.' : 'Login successful.',
       });
-      navigate('/patient/register');
+      navigate('/patient');
       
     } catch (error: any) {
       console.error('Verify OTP error:', error);
@@ -99,7 +166,50 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
   return (
     <div className="space-y-4 animate-fade-in">
       {step === 'email' && (
+        <div className="rounded-lg border p-1 grid grid-cols-2 gap-1">
+          <Button
+            type="button"
+            variant={authMode === 'login' ? 'default' : 'ghost'}
+            onClick={() => setAuthMode('login')}
+          >
+            Login
+          </Button>
+          <Button
+            type="button"
+            variant={authMode === 'signup' ? 'default' : 'ghost'}
+            onClick={() => setAuthMode('signup')}
+          >
+            Sign Up
+          </Button>
+        </div>
+      )}
+
+      {step === 'email' && (
         <>
+          {authMode === 'signup' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name *</Label>
+                <Input
+                  id="full_name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Mobile Number *</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -109,6 +219,11 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              {authMode === 'signup'
+                ? 'Name and phone are required for signup. Account will be created after OTP verification.'
+                : 'Login uses email verification only.'}
+            </p>
           </div>
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={onBack} className="flex-1">Back</Button>

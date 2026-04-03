@@ -14,11 +14,14 @@ export interface AuthResponse {
 /**
  * Send OTP to email
  */
-export async function sendOTPToEmail(email: string): Promise<{ error: AuthError | null }> {
+export async function sendOTPToEmail(
+  email: string,
+  shouldCreateUser: boolean = true
+): Promise<{ error: AuthError | null }> {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      shouldCreateUser: true,
+      shouldCreateUser,
       emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   });

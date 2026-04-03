@@ -1,13 +1,19 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, Users, Activity, Bed, TrendingUp, Clock, UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope } from 'lucide-react';
+import { useState } from 'react';
+import { signUpWithPassword } from '@/utils/auth';
+import { supabase } from '@/utils/supabase';
+import { useToast } from '@/hooks/use-toast';
+import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 
-const StatCard = ({ icon: Icon, label, value, trend }: { icon: any; label: string; value: string; trend?: string }) => (
+const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) => (
   <div className="bg-card rounded-xl p-5 shadow-card border border-border">
     <div className="flex items-center justify-between mb-3">
       <div className="p-2 rounded-lg bg-primary/10"><Icon className="h-5 w-5 text-primary" /></div>
-      {trend && <span className="text-xs font-medium text-success">{trend}</span>}
     </div>
     <p className="text-2xl font-bold text-foreground">{value}</p>
     <p className="text-sm text-muted-foreground">{label}</p>
@@ -17,61 +23,290 @@ const StatCard = ({ icon: Icon, label, value, trend }: { icon: any; label: strin
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const {
+    today,
+    loading,
+    error,
+    totalPatients,
+    tokensToday,
+    waitingOrActive,
+    completedToday,
+    recentPatients,
+    liveQueue,
+    doctorStats,
+    refresh,
+  } = useAdminDashboard();
+
+  const [showCreateDoctor, setShowCreateDoctor] = useState(false);
+  const [doctorRole, setDoctorRole] = useState<'doctor' | 'senior_doctor'>('doctor');
+  const [doctorName, setDoctorName] = useState('');
+  const [doctorEmail, setDoctorEmail] = useState('');
+  const [doctorPassword, setDoctorPassword] = useState('');
+  const [doctorSpecialty, setDoctorSpecialty] = useState<string>('general');
+  const [creatingDoctor, setCreatingDoctor] = useState(false);
+
+  const DOCTOR_SPECIALTIES = [
+    { value: 'general', label: 'General Practice' },
+    { value: 'fever', label: 'Fever & Infectious Diseases' },
+    { value: 'cough', label: 'Respiratory & Pulmonology' },
+    { value: 'pain', label: 'Pain Management' },
+    { value: 'headache', label: 'Neurology & Headache' },
+    { value: 'injury', label: 'Emergency & Trauma' },
+    { value: 'followup', label: 'Follow-up & Continuity Care' },
+    { value: 'chronic', label: 'Chronic Disease Management' },
+  ];
+
+  const handleCreateDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doctorEmail || !doctorPassword || !doctorName) {
+      toast({ title: 'Fill all fields', variant: 'destructive' });
+      return;
+    }
+
+    setCreatingDoctor(true);
+    try {
+      const { user: createdUser, error: signUpError } = await signUpWithPassword(doctorEmail, doctorPassword, {
+        full_name: doctorName,
+        role: doctorRole,
+      });
+      if (signUpError || !createdUser) {
+        throw new Error(signUpError?.message || 'Could not create account');
+      }
+
+      const { error: rpcError } = await supabase.rpc('admin_upsert_staff_profile', {
+        target_user_id: createdUser.id,
+        target_role: doctorRole,
+        target_display_name: doctorName,
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Update specialty in staff_profiles
+      const { error: specialtyError } = await supabase
+        .from('staff_profiles')
+        .update({ specialty: doctorSpecialty })
+        .eq('user_id', createdUser.id);
+
+      if (specialtyError) {
+        console.error('Failed to set specialty:', specialtyError);
+      }
+
+      toast({
+        title: 'Account created',
+        description: `${doctorRole === 'senior_doctor' ? 'Senior doctor' : 'Doctor'} with ${DOCTOR_SPECIALTIES.find(s => s.value === doctorSpecialty)?.label} specialty created.`,
+      });
+      setDoctorName('');
+      setDoctorEmail('');
+      setDoctorPassword('');
+      setDoctorRole('doctor');
+      setDoctorSpecialty('general');
+      setShowCreateDoctor(false);
+      await refresh();
+    } catch (err: any) {
+      toast({
+        title: 'Failed to create account',
+        description: err.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingDoctor(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+          <p className="text-sm text-muted-foreground">
+            Welcome back, {user?.name} · Live data · {today}
+          </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { logout(); navigate('/'); }}>
-          <LogOut className="h-4 w-4 mr-2" /> Logout
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => refresh()}>
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { logout(); navigate('/'); }}>
+            <LogOut className="h-4 w-4 mr-2" /> Logout
+          </Button>
+        </div>
       </header>
-      <main className="p-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Users} label="Total Patients Today" value="284" trend="+12%" />
-          <StatCard icon={Activity} label="Active Tokens" value="47" />
-          <StatCard icon={Bed} label="Beds Available" value="32 / 120" />
-          <StatCard icon={TrendingUp} label="Revenue Today" value="₹2.4L" trend="+8%" />
+      <main className="p-6 max-w-7xl mx-auto space-y-6">
+        {error && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error} (Ensure migrations applied and admin role is set in staff_profiles.)
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="Total patients (all time)" value={loading ? '…' : totalPatients} />
+          <StatCard icon={Activity} label="Tokens today" value={loading ? '…' : tokensToday} />
+          <StatCard icon={Clock} label="Waiting / Active now" value={loading ? '…' : waitingOrActive} />
+          <StatCard icon={Stethoscope} label="Completed today" value={loading ? '…' : completedToday} />
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <h3 className="font-semibold text-foreground mb-4">Live Token Queue</h3>
-            <div className="space-y-3">
-              {['Dr. Sharma - OPD 1', 'Dr. Patel - OPD 2', 'Dr. Singh - OPD 3'].map((doc, i) => (
-                <div key={doc} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                  <span className="text-sm font-medium">{doc}</span>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Token #{(i + 1) * 5 + 12}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Live token queue</h3>
+              <span className="text-xs text-muted-foreground">{liveQueue.length} waiting or active</span>
             </div>
-          </div>
-          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <h3 className="font-semibold text-foreground mb-4">Recent Registrations</h3>
-            <div className="space-y-3">
-              {[
-                { name: 'Rajesh Kumar', id: 'PAT-0284', time: '2 min ago' },
-                { name: 'Priya Devi', id: 'PAT-0283', time: '8 min ago' },
-                { name: 'Amit Verma', id: 'PAT-0282', time: '15 min ago' },
-              ].map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <UserPlus className="h-4 w-4 text-primary" />
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading queue…</p>
+            ) : liveQueue.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No tokens in queue for today.</p>
+            ) : (
+              <div className="space-y-2 max-h-[420px] overflow-y-auto">
+                {liveQueue.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg text-sm">
                     <div>
-                      <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.id}</p>
+                      <p className="font-medium">{t.token_number}</p>
+                      <p className="text-muted-foreground">
+                        {t.patients?.full_name || 'Unknown'} · {t.patients?.patient_id || '—'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t.chief_complaint || 'No complaint'}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-medium">{t.status}</span>
+                      <p className="text-xs text-muted-foreground">Q #{t.queue_position ?? '—'}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{p.time}</span>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Recent patient registrations</h3>
+            </div>
+            <div className="space-y-2 max-h-[420px] overflow-y-auto">
+              {recentPatients.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No patients yet.</p>
+              ) : (
+                recentPatients.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <UserPlus className="h-4 w-4 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">{p.full_name}</p>
+                        <p className="text-xs text-muted-foreground">{p.patient_id}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(p.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
+
+          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Doctor Management</h3>
+              <Button variant="outline" size="sm" onClick={() => setShowCreateDoctor((prev) => !prev)}>
+                {showCreateDoctor ? 'Cancel' : 'Create Doctor Account'}
+              </Button>
+            </div>
+            {showCreateDoctor ? (
+              <form className="space-y-3" onSubmit={handleCreateDoctor}>
+                <div className="space-y-2">
+                  <Label htmlFor="doctor-name">Full Name</Label>
+                  <Input
+                    id="doctor-name"
+                    value={doctorName}
+                    onChange={(e) => setDoctorName(e.target.value)}
+                    placeholder="Dr. Full Name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doctor-email">Email</Label>
+                  <Input
+                    id="doctor-email"
+                    type="email"
+                    value={doctorEmail}
+                    onChange={(e) => setDoctorEmail(e.target.value)}
+                    placeholder="doctor@hospital.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doctor-password">Password</Label>
+                  <Input
+                    id="doctor-password"
+                    type="password"
+                    value={doctorPassword}
+                    onChange={(e) => setDoctorPassword(e.target.value)}
+                    placeholder="Set temporary password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doctor-role">Role</Label>
+                  <select
+                    id="doctor-role"
+                    className="w-full border border-input rounded-md bg-background px-3 py-2 text-sm"
+                    value={doctorRole}
+                    onChange={(e) => setDoctorRole(e.target.value as 'doctor' | 'senior_doctor')}
+                  >
+                    <option value="doctor">Doctor</option>
+                    <option value="senior_doctor">Senior Doctor</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doctor-specialty">Specialty</Label>
+                  <select
+                    id="doctor-specialty"
+                    className="w-full border border-input rounded-md bg-background px-3 py-2 text-sm"
+                    value={doctorSpecialty}
+                    onChange={(e) => setDoctorSpecialty(e.target.value)}
+                  >
+                    {DOCTOR_SPECIALTIES.map((spec) => (
+                      <option key={spec.value} value={spec.value}>
+                        {spec.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button disabled={creatingDoctor} type="submit" className="w-full">
+                  {creatingDoctor ? 'Creating...' : 'Create Doctor Account'}
+                </Button>
+              </form>
+            ) : (
+              <div className="text-center py-8">
+                <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Click "Create Doctor Account" to add a new doctor</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl p-6 shadow-card border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Doctor-wise patients handled (completed today)</h3>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : doctorStats.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No completed visits or no doctor assignments yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-4">Doctor</th>
+                    <th className="py-2 pr-4">Patients handled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doctorStats.map((row) => (
+                    <tr key={row.doctor_user_id || 'x'} className="border-b border-border/60">
+                      <td className="py-2 pr-4 font-medium">{row.display_name}</td>
+                      <td className="py-2 pr-4">{row.patients_handled}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
     </div>

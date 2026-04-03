@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserRole } from '@/types/auth';
-import { getCurrentSession, getCurrentUser, signOut as supabaseSignOut, onAuthStateChange } from '@/utils/auth';
+import { getCurrentSession, signOut as supabaseSignOut, onAuthStateChange } from '@/utils/auth';
 import type { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/utils/supabase';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -35,15 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
     
     // Listen for auth changes
-    const subscription = onAuthStateChange((session) => {
+    const subscription = onAuthStateChange(async (session) => {
       if (session?.user) {
-        // User is logged in via Supabase
-        setAuth(prev => ({
-          ...prev,
+        const resolvedAuth = await resolveUserAuthProfile(session.user);
+        setAuth({
+          isAuthenticated: true,
+          role: resolvedAuth.role,
+          user: resolvedAuth.user,
           supabaseUser: session.user,
           session: session,
           loading: false,
-        }));
+        });
       } else {
         // User is logged out
         setAuth({
@@ -67,25 +70,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { session } = await getCurrentSession();
       
       if (session?.user) {
-        // Try to restore user data from localStorage
-        const storedAuth = localStorage.getItem('auth_state');
-        if (storedAuth) {
-          const parsed = JSON.parse(storedAuth);
-          setAuth({
-            ...parsed,
-            supabaseUser: session.user,
-            session: session,
-            loading: false,
-          });
-        } else {
-          // Just set Supabase session
-          setAuth(prev => ({
-            ...prev,
-            supabaseUser: session.user,
-            session: session,
-            loading: false,
-          }));
-        }
+        const resolvedAuth = await resolveUserAuthProfile(session.user);
+        setAuth({
+          isAuthenticated: true,
+          role: resolvedAuth.role,
+          user: resolvedAuth.user,
+          supabaseUser: session.user,
+          session: session,
+          loading: false,
+        });
       } else {
         setAuth(prev => ({ ...prev, loading: false }));
       }
@@ -111,6 +104,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role,
       user,
     }));
+  };
+
+  const resolveUserAuthProfile = async (supabaseUser: User): Promise<{ role: UserRole; user: AuthState['user'] }> => {
+    const { data: staffProfile } = await supabase
+      .from('staff_profiles')
+      .select('display_name, role')
+      .eq('user_id', supabaseUser.id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (staffProfile?.role) {
+      return {
+        role: staffProfile.role as UserRole,
+        user: {
+          name: staffProfile.display_name || supabaseUser.email?.split('@')[0] || 'Staff',
+          email: supabaseUser.email,
+        },
+      };
+    }
+
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('full_name, patient_id, email, phone')
+      .eq('user_id', supabaseUser.id)
+      .maybeSingle();
+
+    return {
+      role: 'patient',
+      user: {
+        name: patient?.full_name || supabaseUser.email?.split('@')[0] || 'Patient',
+        email: patient?.email || supabaseUser.email,
+        phone: patient?.phone,
+        patientId: patient?.patient_id,
+      },
+    };
   };
 
   const setSupabaseSession = (user: User, session: Session) => {
