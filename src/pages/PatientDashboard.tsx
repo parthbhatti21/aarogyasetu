@@ -1,67 +1,132 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, Ticket, Clock, FileText, Bell } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
+import { useQueue } from '@/hooks/useQueue';
+import { supabase } from '@/utils/supabase';
+import { LogOut, Ticket, FileText, Bell, Pill } from 'lucide-react';
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [patientDbId, setPatientDbId] = useState<string | null>(null);
+
+  // Fetch patient database ID
+  useEffect(() => {
+    const fetchPatientId = async () => {
+      if (!user?.patientId) return;
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('patient_id', user.patientId)
+        .single();
+
+      if (data && !error) {
+        setPatientDbId(data.id);
+      }
+    };
+
+    fetchPatientId();
+  }, [user?.patientId]);
+
+  // Use queue hook with real-time updates
+  const {
+    currentToken,
+    activeToken,
+    queuePosition,
+    estimatedWaitTime,
+    queueData,
+    loading,
+  } = useQueue({
+    patientId: patientDbId || undefined,
+    autoRefresh: true,
+  });
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="gradient-primary px-6 py-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <header className="bg-white shadow-sm px-6 py-4 border-b">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-primary-foreground">Welcome, {user?.name}</h1>
-            <p className="text-sm text-primary-foreground/80">Patient ID: {user?.patientId || 'PAT-0001'}</p>
+            <h1 className="text-2xl font-bold text-gray-900">Welcome, {user?.name}</h1>
+            <p className="text-sm text-gray-600">Patient ID: {user?.patientId || 'Not assigned'}</p>
           </div>
-          <Button variant="outline" size="sm" className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/20" onClick={() => { logout(); navigate('/'); }}>
+          <Button variant="outline" onClick={() => { logout(); navigate('/'); }}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
         </div>
       </header>
-      <main className="p-6 max-w-3xl mx-auto -mt-4">
-        {/* Token card */}
-        <div className="bg-card rounded-xl p-6 shadow-elevated border border-border mb-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Your Token Number</p>
-          <p className="text-5xl font-bold text-primary mb-2">T-018</p>
-          <p className="text-sm text-muted-foreground">Currently serving: <span className="font-semibold text-foreground">T-012</span></p>
-          <div className="mt-4 flex items-center justify-center gap-2 text-info">
-            <Clock className="h-4 w-4" />
-            <span className="text-sm font-medium">Estimated wait: ~30 minutes</span>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button className="bg-card rounded-xl p-5 shadow-card border border-border flex items-center gap-4 hover:shadow-elevated transition-shadow text-left">
-            <div className="p-3 rounded-lg bg-primary/10"><Ticket className="h-5 w-5 text-primary" /></div>
+      <main className="p-6 max-w-7xl mx-auto">
+        <Tabs defaultValue="waiting-room" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-4">
+            <TabsTrigger value="waiting-room">
+              <Ticket className="h-4 w-4 mr-2" />
+              Queue
+            </TabsTrigger>
+            <TabsTrigger value="records">
+              <FileText className="h-4 w-4 mr-2" />
+              Records
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="h-4 w-4 mr-2" />
+              Alerts
+            </TabsTrigger>
+            <TabsTrigger value="medicines">
+              <Pill className="h-4 w-4 mr-2" />
+              Medicine
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Virtual Waiting Room Tab */}
+          <TabsContent value="waiting-room" className="space-y-6">
             <div>
-              <p className="font-medium text-foreground">Virtual Waiting Room</p>
-              <p className="text-sm text-muted-foreground">Track live queue status</p>
+              <h2 className="text-2xl font-bold mb-2">Virtual Waiting Room</h2>
+              <p className="text-gray-600">Real-time queue updates and token status</p>
             </div>
-          </button>
-          <button className="bg-card rounded-xl p-5 shadow-card border border-border flex items-center gap-4 hover:shadow-elevated transition-shadow text-left">
-            <div className="p-3 rounded-lg bg-info/10"><FileText className="h-5 w-5 text-info" /></div>
-            <div>
-              <p className="font-medium text-foreground">Health Records</p>
-              <p className="text-sm text-muted-foreground">View prescriptions & reports</p>
+
+            <VirtualWaitingRoom
+              currentToken={currentToken}
+              activeToken={activeToken}
+              queuePosition={queuePosition}
+              estimatedWaitTime={estimatedWaitTime}
+              queueData={queueData}
+              loading={loading}
+            />
+          </TabsContent>
+
+          {/* Health Records Tab */}
+          <TabsContent value="records">
+            <div className="bg-white rounded-lg p-8 text-center">
+              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold mb-2">Health Records</h3>
+              <p className="text-gray-600">View your medical history, prescriptions, and lab reports</p>
+              <p className="text-sm text-gray-500 mt-4">Coming soon...</p>
             </div>
-          </button>
-          <button className="bg-card rounded-xl p-5 shadow-card border border-border flex items-center gap-4 hover:shadow-elevated transition-shadow text-left">
-            <div className="p-3 rounded-lg bg-success/10"><Bell className="h-5 w-5 text-success" /></div>
-            <div>
-              <p className="font-medium text-foreground">Notifications</p>
-              <p className="text-sm text-muted-foreground">SMS & WhatsApp alerts</p>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications">
+            <div className="bg-white rounded-lg p-8 text-center">
+              <Bell className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold mb-2">Notifications</h3>
+              <p className="text-gray-600">Stay updated with appointment reminders and test results</p>
+              <p className="text-sm text-gray-500 mt-4">Coming soon...</p>
             </div>
-          </button>
-          <button className="bg-card rounded-xl p-5 shadow-card border border-border flex items-center gap-4 hover:shadow-elevated transition-shadow text-left">
-            <div className="p-3 rounded-lg bg-warning/10"><Ticket className="h-5 w-5 text-warning" /></div>
-            <div>
-              <p className="font-medium text-foreground">Medicine Check</p>
-              <p className="text-sm text-muted-foreground">Nearby store availability</p>
+          </TabsContent>
+
+          {/* Medicine Checker Tab */}
+          <TabsContent value="medicines">
+            <div className="bg-white rounded-lg p-8 text-center">
+              <Pill className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold mb-2">Medicine Availability</h3>
+              <p className="text-gray-600">Check medicine stock and find nearby pharmacies</p>
+              <p className="text-sm text-gray-500 mt-4">Coming soon...</p>
             </div>
-          </button>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

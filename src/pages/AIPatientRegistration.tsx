@@ -69,6 +69,30 @@ const AIPatientRegistration = () => {
     isSupported: voiceOutputSupported,
   } = useSpeechSynthesis();
 
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      console.log('🔍 Auth Check:', { 
+        hasSession: !!session, 
+        user: session?.user?.email,
+        error 
+      });
+      
+      if (!session) {
+        toast({
+          title: 'Session Expired',
+          description: 'Please log in again to continue registration.',
+          variant: 'destructive',
+        });
+        navigate('/patient/login');
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
+
   // Auto-scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

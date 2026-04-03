@@ -68,42 +68,22 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
         throw error || new Error('Verification failed');
       }
 
+      console.log('✅ OTP Verified:', { email: user.email, hasSession: !!session });
+
       // Store Supabase session in context
       setSupabaseSession(user, session);
 
-      // Check if patient record exists in database
-      const { data: existingPatient, error: patientError } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('email', email)
-        .single();
+      // Wait a moment for session to persist to localStorage
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      if (patientError && patientError.code !== 'PGRST116') {
-        // PGRST116 = no rows returned (new patient)
-        throw patientError;
-      }
-
-      if (existingPatient) {
-        // Existing patient - log them in
-        login('patient', { 
-          name: existingPatient.full_name, 
-          email: existingPatient.email,
-          phone: existingPatient.phone,
-          patientId: existingPatient.patient_id 
-        });
-        toast({ 
-          title: `Welcome back, ${existingPatient.full_name}!`,
-          description: `Patient ID: ${existingPatient.patient_id}`
-        });
-        navigate('/patient');
-      } else {
-        // New patient - redirect to AI registration
-        toast({ 
-          title: 'Email Verified!',
-          description: 'Let\'s complete your registration with our AI assistant.',
-        });
-        navigate('/patient/register');
-      }
+      // For new patient registration, always go to registration page
+      // We'll check if patient exists DURING registration submission
+      toast({ 
+        title: 'Email Verified!',
+        description: 'Let\'s complete your registration with our AI assistant.',
+      });
+      navigate('/patient/register');
+      
     } catch (error: any) {
       console.error('Verify OTP error:', error);
       toast({ 

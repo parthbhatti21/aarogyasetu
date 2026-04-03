@@ -64,7 +64,13 @@ export class AIChatService {
   async sendMessage(message: string): Promise<ChatResponse> {
     try {
       // Get current session token
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log('🔐 Session Check:', {
+        hasSession: !!session,
+        error: sessionError,
+        tokenLength: session?.access_token?.length
+      });
       
       if (!session) {
         throw new Error('User not authenticated');
@@ -89,8 +95,19 @@ export class AIChatService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get AI response');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        
+        // Better error messages
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        }
+        
+        throw new Error(errorData.error || `Failed to get AI response (${response.status})`);
       }
 
       const data = await response.json();
