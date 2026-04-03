@@ -11,6 +11,7 @@ import RegistrationDashboard from "./pages/RegistrationDashboard";
 import PatientDashboard from "./pages/PatientDashboard";
 import MedicalStoreAdminDashboard from "./pages/MedicalStoreAdminDashboard";
 import MedicalStoreSalesDashboard from "./pages/MedicalStoreSalesDashboard";
+import AIPatientRegistration from "./pages/AIPatientRegistration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/patient/register" element={<AIPatientRegistration />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/registration" element={<RegistrationDashboard />} />

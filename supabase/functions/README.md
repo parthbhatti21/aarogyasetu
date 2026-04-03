@@ -18,8 +18,7 @@ supabase link --project-ref klqflfwsqooswhjjmloz
 
 ### 3. Set Cohere API Key as Secret
 ```bash
-supabase secrets set COHERE_API_KEY=eeW4xQr5CnWGYdRsyAyQ072sHhUU1TFPZ9ZAkufa
-```
+
 
 ### 4. Deploy the Edge Function
 ```bash
@@ -122,8 +121,7 @@ supabase functions logs cohere-chat --follow
 supabase secrets list
 
 # Re-set the secret
-supabase secrets set COHERE_API_KEY=eeW4xQr5CnWGYdRsyAyQ072sHhUU1TFPZ9ZAkufa
-```
+
 
 ### Error: "Unauthorized"
 - Ensure you're passing the correct Supabase anon key in Authorization header
