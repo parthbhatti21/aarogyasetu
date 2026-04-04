@@ -13,11 +13,11 @@ export const Topbar = ({ title }: TopbarProps) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 gap-4 z-40 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 gap-3 z-40 shadow-sm">
       {/* Logo and company name */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <img src={LogoImage} alt="AarogyaSetuX" className="h-8 w-8 rounded" />
-        <div className="text-sm font-semibold text-foreground">AarogyaSetuX</div>
+        <div className="text-base font-extrabold text-foreground tracking-tight">AarogyaSetuX</div>
       </div>
 
       {/* Spacer */}
