@@ -26,7 +26,6 @@ const PatientDashboard = () => {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [creatingToken, setCreatingToken] = useState(false);
-  const [manualChiefComplaint, setManualChiefComplaint] = useState('general');
   const [aiReasonPreview, setAiReasonPreview] = useState<string | null>(null);
   const [aiSymptomsPreview, setAiSymptomsPreview] = useState<string[]>([]);
   const [aiIntakeReady, setAiIntakeReady] = useState(false);
@@ -36,17 +35,6 @@ const PatientDashboard = () => {
     setAiSymptomsPreview(preview.symptoms);
     setAiIntakeReady(preview.ready);
   }, []);
-
-  const MANUAL_VISIT_CHIEF: { value: string; label: string }[] = [
-    { value: 'general', label: 'General consultation' },
-    { value: 'fever', label: 'Fever / cold / flu' },
-    { value: 'cough', label: 'Cough / breathing difficulty' },
-    { value: 'pain', label: 'Pain (abdomen / chest / joints)' },
-    { value: 'headache', label: 'Headache / migraine' },
-    { value: 'injury', label: 'Injury / wound' },
-    { value: 'followup', label: 'Follow-up visit' },
-    { value: 'chronic', label: 'Chronic condition review' },
-  ];
 
   // Check if patient is registered
   useEffect(() => {
@@ -127,25 +115,17 @@ const PatientDashboard = () => {
   const handleGetToken = async () => {
     setCreatingToken(true);
     try {
-      let chiefComplaint: string;
-      let symptoms: string[];
-
-      if (aiIntakeReady && aiReasonPreview?.trim()) {
-        chiefComplaint = aiReasonPreview.trim();
-        symptoms = [...aiSymptomsPreview];
-      } else {
-        if (manualChiefComplaint === 'general') {
-          toast({
-            title: 'Choose a visit reason',
-            description: 'Use AI Token Generator to describe your visit, or pick a specific reason from the list (not General consultation).',
-            variant: 'destructive',
-          });
-          return;
-        }
-        const opt = MANUAL_VISIT_CHIEF.find((o) => o.value === manualChiefComplaint);
-        chiefComplaint = opt?.label || 'General consultation';
-        symptoms = [];
+      if (!aiIntakeReady || !aiReasonPreview?.trim()) {
+        toast({
+          title: 'Please describe your symptoms',
+          description: 'Use AI Token Generator to describe your visit reason and symptoms.',
+          variant: 'destructive',
+        });
+        return;
       }
+
+      const chiefComplaint = aiReasonPreview.trim();
+      const symptoms = [...aiSymptomsPreview];
 
       const tokenNumber = await createTokenHandler({
         chiefComplaint,
@@ -295,33 +275,20 @@ const PatientDashboard = () => {
                 )}
               </div>
               
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-                  <div className="space-y-2 flex-1 min-w-[200px]">
-                    <label className="text-sm font-medium text-gray-700">Or choose manually</label>
-                    <DisclosureDropdown
-                      value={manualChiefComplaint}
-                      onValueChange={setManualChiefComplaint}
-                      placeholder="Select reason"
-                      options={MANUAL_VISIT_CHIEF}
-                      disabled={creatingToken || !isRegistered || !!currentToken}
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleGetToken}
-                    disabled={
-                      creatingToken ||
-                      !isRegistered ||
-                      !!currentToken ||
-                      (!aiIntakeReady && manualChiefComplaint === 'general')
-                    }
-                  >
-                    <Ticket className="h-4 w-4 mr-2" />
-                    Get Token
-                  </Button>
-                </div>
-              </div>
+              <Button
+                size="sm"
+                onClick={handleGetToken}
+                disabled={
+                  creatingToken ||
+                  !isRegistered ||
+                  !!currentToken ||
+                  !aiIntakeReady
+                }
+                className="w-fit"
+              >
+                <Ticket className="h-4 w-4 mr-2" />
+                Get Token
+              </Button>
             </div>
             <VirtualWaitingRoom
               currentToken={currentToken}
