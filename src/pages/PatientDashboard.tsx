@@ -176,7 +176,7 @@ const PatientDashboard = () => {
   // Show loading state
   if (isRegistered === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -186,7 +186,7 @@ const PatientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <header className="bg-white shadow-sm px-6 py-4 border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
@@ -236,9 +236,9 @@ const PatientDashboard = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Manual Fill Card */}
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
-                    <FileText className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
+                    <FileText className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">Fill Manually</h3>
                       <p className="text-sm text-gray-600">Fill the form step by step</p>
@@ -246,7 +246,7 @@ const PatientDashboard = () => {
                   </div>
                   <Button 
                     size="sm"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
                     onClick={() => navigate('/patient/medical-form-manual')}
                   >
                     <FileText className="h-4 w-4 mr-2" />
