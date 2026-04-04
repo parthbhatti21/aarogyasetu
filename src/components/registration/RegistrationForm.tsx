@@ -6,10 +6,12 @@ import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 import type { PatientRegistrationData } from '@/services/registrationService';
+import { getChiefComplaints } from '@/services/registrationService';
 
 interface RegistrationFormProps {
   onSubmit: (data: PatientRegistrationData) => Promise<void>;
   isLoading?: boolean;
+  onPurposeOfVisitChange?: (purpose: string) => void;
 }
 
 const BILLING_TYPE_OPTIONS = [
@@ -34,8 +36,10 @@ const GENDER_OPTIONS = [
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   onSubmit,
   isLoading = false,
+  onPurposeOfVisitChange,
 }) => {
   const { toast } = useToast();
+  const [chiefComplaints, setChiefComplaints] = useState<Array<{ value: string; label: string }>>([]);
 
   const [formData, setFormData] = useState<PatientRegistrationData>({
     firstName: '',
@@ -52,6 +56,19 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Load chief complaints on mount
+  useEffect(() => {
+    const loadComplaints = async () => {
+      try {
+        const complaints = await getChiefComplaints();
+        setChiefComplaints(complaints);
+      } catch (error) {
+        console.error('Error loading chief complaints:', error);
+      }
+    };
+    loadComplaints();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -91,6 +108,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (touched[field]) {
       // Re-validate on change if field was touched
       validateField(field, value);
+    }
+    // Trigger callback for purpose of visit changes
+    if (field === 'purposeOfVisit' && onPurposeOfVisitChange) {
+      onPurposeOfVisitChange(value);
     }
   };
 
@@ -303,13 +324,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         <Label htmlFor="purpose" className="font-medium">
           Purpose of Visit / Chief Complaint *
         </Label>
-        <Input
-          id="purpose"
-          placeholder="e.g., Fever, Cough, Skin issue, etc."
+        <DisclosureDropdown
           value={formData.purposeOfVisit}
-          onChange={e => handleChange('purposeOfVisit', e.target.value)}
-          onBlur={() => handleBlur('purposeOfVisit')}
-          className={`text-lg p-3 ${errors.purposeOfVisit ? 'border-destructive' : ''}`}
+          onValueChange={value => handleChange('purposeOfVisit', value)}
+          placeholder="Select chief complaint or symptom"
+          options={chiefComplaints}
           disabled={isLoading}
         />
         {errors.purposeOfVisit && (

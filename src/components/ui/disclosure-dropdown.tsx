@@ -48,6 +48,7 @@ export function DisclosureDropdown({
   return (
     <div ref={ref} className={`relative inline-block w-full ${className}`}>
       <motion.button
+        type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
         whileTap={{ scale: 0.98 }}
@@ -72,6 +73,7 @@ export function DisclosureDropdown({
               {options.map((option) => (
                 <motion.button
                   key={option.value}
+                  type="button"
                   onClick={() => {
                     onValueChange?.(option.value);
                     setOpen(false);

@@ -104,7 +104,7 @@ const EnhancedRegistrationDashboard = () => {
       const result = await registerPatient(
         data,
         staffInfo.hospital_id,
-        staffInfo.id,
+        staffInfo.user_id,  // ← Pass user_id, not id (FK references user_id)
         suggestion.specialty
       );
 
@@ -142,6 +142,21 @@ const EnhancedRegistrationDashboard = () => {
       ...prev,
       specialty,
     }));
+  };
+
+  const handlePurposeOfVisitChange = async (purpose: string) => {
+    if (!purpose.trim()) {
+      setSuggestedDoctor(null);
+      return;
+    }
+
+    try {
+      // Get doctor suggestion based on purpose of visit
+      const suggestion = await suggestDoctorSpecialty(purpose);
+      setSuggestedDoctor(suggestion);
+    } catch (error) {
+      console.error('Error getting doctor suggestion:', error);
+    }
   };
 
   const handlePrintToken = () => {
@@ -385,6 +400,7 @@ const EnhancedRegistrationDashboard = () => {
                   <RegistrationForm
                     onSubmit={handleRegistrationSubmit}
                     isLoading={loading}
+                    onPurposeOfVisitChange={handlePurposeOfVisitChange}
                   />
                 </Card>
               </div>

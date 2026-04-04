@@ -397,3 +397,41 @@ export async function getRegistrationStats(hospitalId: string) {
     throw error;
   }
 }
+
+/**
+ * Fetch all chief complaint keywords for dropdown
+ */
+export async function getChiefComplaints(): Promise<Array<{ value: string; label: string }>> {
+  try {
+    const { data: complaints, error } = await supabase
+      .from('chief_complaint_to_specialty')
+      .select('chief_complaint_keyword')
+      .eq('is_active', true)
+      .order('chief_complaint_keyword', { ascending: true });
+
+    if (error) throw error;
+
+    // Remove duplicates and map to dropdown format
+    const uniqueComplaints = Array.from(
+      new Set((complaints || []).map(c => c.chief_complaint_keyword))
+    );
+
+    return uniqueComplaints.map(complaint => ({
+      value: complaint,
+      label: complaint.charAt(0).toUpperCase() + complaint.slice(1),
+    }));
+  } catch (error) {
+    console.error('Error fetching chief complaints:', error);
+    // Return common complaints as fallback
+    return [
+      { value: 'fever', label: 'Fever' },
+      { value: 'cold', label: 'Cold' },
+      { value: 'cough', label: 'Cough' },
+      { value: 'chest pain', label: 'Chest Pain' },
+      { value: 'headache', label: 'Headache' },
+      { value: 'body pain', label: 'Body Pain' },
+      { value: 'weakness', label: 'Weakness' },
+      { value: 'dizziness', label: 'Dizziness' },
+    ];
+  }
+}
