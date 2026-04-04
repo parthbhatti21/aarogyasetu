@@ -8,7 +8,7 @@ import {
 } from '@/services/adminService';
 import { supabase } from '@/utils/supabase';
 
-export function useAdminDashboard(adminUserId?: string) {
+export function useAdminDashboard(adminUserId?: string, selectedHospitalId?: string | null) {
   const [today, setToday] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,21 +47,23 @@ export function useAdminDashboard(adminUserId?: string) {
     setToday(d);
     setError(null);
     try {
-      const overview = await fetchAdminOverview(d, hospitalId);
+      // Use selected hospital if provided, otherwise use admin's hospital
+      const filterHospitalId = selectedHospitalId || hospitalId;
+      const overview = await fetchAdminOverview(d, filterHospitalId);
       setTotalPatients(overview.totalPatients);
       setTokensToday(overview.tokensToday);
       setWaitingOrActive(overview.waitingOrActive);
       setCompletedToday(overview.completedToday);
       setRecentPatients(overview.recentPatients as typeof recentPatients);
       setLiveQueue(overview.liveQueue);
-      const stats = await fetchDoctorPatientStats(d, hospitalId);
+      const stats = await fetchDoctorPatientStats(d, filterHospitalId);
       setDoctorStats(stats);
     } catch (e: any) {
       setError(e.message || 'Failed to load admin data');
     } finally {
       setLoading(false);
     }
-  }, [hospitalId]);
+  }, [hospitalId, selectedHospitalId]);
 
   useEffect(() => {
     refresh();

@@ -66,7 +66,7 @@ const AdminDashboard = () => {
     liveQueue,
     doctorStats,
     refresh,
-  } = useAdminDashboard(adminUserId);
+  } = useAdminDashboard(adminUserId, selectedHospital?.id);
 
   const [showCreateDoctor, setShowCreateDoctor] = useState(false);
   const [doctorRole, setDoctorRole] = useState<'doctor' | 'senior_doctor'>('doctor');

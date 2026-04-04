@@ -81,10 +81,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6. Add hospital_code values to existing hospitals (if not already set)
--- Using first 3 letters + ID
-UPDATE hospitals
-SET hospital_code = 'H' || LPAD(ROW_NUMBER() OVER (ORDER BY created_at)::TEXT, 3, '0')
-WHERE hospital_code IS NULL;
+-- Using CTE to generate row numbers
+WITH ranked_hospitals AS (
+    SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) as row_num
+    FROM hospitals
+    WHERE hospital_code IS NULL
+)
+UPDATE hospitals h
+SET hospital_code = 'H' || LPAD(rh.row_num::TEXT, 3, '0')
+FROM ranked_hospitals rh
+WHERE h.id = rh.id;
 
 -- 7. Verify function works
 -- SELECT generate_hospital_token_number('your-hospital-uuid'::UUID);
