@@ -27,13 +27,13 @@ export const Topbar = ({ title }: TopbarProps) => {
       <div className="relative">
         <Button
           variant="ghost"
-          size="icon"
           onClick={() => setShowUserMenu(!showUserMenu)}
-          className="text-foreground"
+          className="text-foreground flex items-center gap-2"
         >
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="h-4 w-4 text-primary" />
           </div>
+          <span className="text-sm font-medium">Profile</span>
         </Button>
 
         {showUserMenu && (
