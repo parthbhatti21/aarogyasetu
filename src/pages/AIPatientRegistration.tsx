@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAIChat } from '@/hooks/useAIChat';
+import { useCohereAIChat } from '@/hooks/useCohereAIChat';
 import { useSpeechRecognition, useSpeechSynthesis } from '@/hooks/useSpeech';
 import { supabase } from '@/utils/supabase';
 import { createTokenForPatient, getHospitals } from '@/services/tokenService';
@@ -34,7 +34,7 @@ const AIPatientRegistration = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // AI Chat Hook
+  // AI Chat Hook - using Cohere API directly (no authentication required)
   const {
     messages,
     isLoading: aiLoading,
@@ -42,9 +42,8 @@ const AIPatientRegistration = () => {
     isComplete,
     sendMessage,
     setLanguage: setChatLanguage,
-    saveConversation,
-  } = useAIChat({
-    language,
+  } = useCohereAIChat({
+    language: language === 'en' ? 'en-IN' : 'hi-IN',
     onDataExtracted: (data) => {
       setFormData(prev => ({ ...prev, ...data }));
     },
@@ -261,8 +260,8 @@ const AIPatientRegistration = () => {
         hospitalId: selectedHospital.id,
       });
 
-      // Save AI conversation
-      await saveConversation(newPatient.id);
+      // Note: AI conversation not saved with direct Cohere integration
+      // await saveConversation(newPatient.id);
 
       // Log the patient in
       login('patient', {
