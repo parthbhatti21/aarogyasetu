@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { LogOut, UserPlus, Printer, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -67,12 +68,16 @@ const RegistrationDashboard = () => {
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">Select</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+                <DisclosureDropdown
+                  value={gender}
+                  onValueChange={setGender}
+                  placeholder="Select Gender"
+                  options={[
+                    { label: 'Male', value: 'male' },
+                    { label: 'Female', value: 'female' },
+                    { label: 'Other', value: 'other' },
+                  ]}
+                />
               </div>
             </div>
             <Button type="submit" className="w-full gradient-primary text-primary-foreground">

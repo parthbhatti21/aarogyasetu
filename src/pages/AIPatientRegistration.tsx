@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCohereAIChat } from '@/hooks/useCohereAIChat';
@@ -451,17 +452,16 @@ const AIPatientRegistration = () => {
                   </div>
                   <div>
                     <Label htmlFor="gender">Gender *</Label>
-                    <select
-                      id="gender"
+                    <DisclosureDropdown
                       value={formData.gender || ''}
-                      onChange={(e) => handleFormChange('gender', e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Select</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      onValueChange={(value) => handleFormChange('gender', value)}
+                      placeholder="Select Gender"
+                      options={[
+                        { label: 'Male', value: 'Male' },
+                        { label: 'Female', value: 'Female' },
+                        { label: 'Other', value: 'Other' },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -489,22 +489,21 @@ const AIPatientRegistration = () => {
 
                 <div>
                   <Label htmlFor="blood_group">Blood Group</Label>
-                  <select
-                    id="blood_group"
+                  <DisclosureDropdown
                     value={formData.blood_group || ''}
-                    onChange={(e) => handleFormChange('blood_group', e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Select</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                    onValueChange={(value) => handleFormChange('blood_group', value)}
+                    placeholder="Select Blood Group"
+                    options={[
+                      { label: 'A+', value: 'A+' },
+                      { label: 'A-', value: 'A-' },
+                      { label: 'B+', value: 'B+' },
+                      { label: 'B-', value: 'B-' },
+                      { label: 'AB+', value: 'AB+' },
+                      { label: 'AB-', value: 'AB-' },
+                      { label: 'O+', value: 'O+' },
+                      { label: 'O-', value: 'O-' },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -521,25 +520,19 @@ const AIPatientRegistration = () => {
                 <div className="border-t pt-4">
                   <Label htmlFor="hospital" className="text-base font-medium">Hospital Selection * <span className="text-red-500">(Required)</span></Label>
                   <p className="text-xs text-gray-600 mb-3">Choose the hospital where you want to register</p>
-                  <select
-                    id="hospital"
+                  <DisclosureDropdown
                     value={selectedHospital?.id || ''}
-                    onChange={(e) => {
-                      const hospital = hospitals.find(h => h.id === e.target.value);
+                    onValueChange={(value) => {
+                      const hospital = hospitals.find(h => h.id === value);
                       setSelectedHospital(hospital || null);
                     }}
+                    placeholder={loadingHospitals ? 'Loading hospitals...' : 'Select a hospital...'}
+                    options={hospitals.map((h) => ({
+                      label: `${h.hospital_name} (${h.state})`,
+                      value: h.id,
+                    }))}
                     disabled={loadingHospitals}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-medium"
-                  >
-                    <option value="">
-                      {loadingHospitals ? 'Loading hospitals...' : 'Select a hospital...'}
-                    </option>
-                    {hospitals.map((hospital) => (
-                      <option key={hospital.id} value={hospital.id}>
-                        {hospital.hospital_name} ({hospital.state})
-                      </option>
-                    ))}
-                  </select>
+                  />
                   {selectedHospital && (
                     <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
                       <p className="text-green-700">

@@ -3,15 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { AITokenIntakeChat, type IntakePreview } from '@/components/patient/AITokenIntakeChat';
-import { AIMedicalFormFiller } from '@/components/patient/AIMedicalFormFiller';
 import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
 import { NotificationsPanel } from '@/components/patient/NotificationsPanel';
 import { useQueue } from '@/hooks/useQueue';
@@ -213,20 +206,21 @@ const PatientDashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto">
-        {/* Registration Banner - Show if not registered */}
-        {!isRegistered && (
-          <div className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
-            <div className="flex items-center gap-4 mb-4">
-              <Sparkles className="h-12 w-12" />
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-2">Add Medical Intake (Optional)</h2>
-                <p className="text-blue-100">
-                  You can continue using the app without this step. Add symptoms and health background
-                  with AI whenever you want for faster consultations.
-                </p>
-              </div>
+        {/* AI Tools Banner - Always show */}
+        <div className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
+          <div className="flex items-center gap-4 mb-4">
+            <Sparkles className="h-12 w-12" />
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold mb-2">AI-Powered Medical Tools</h2>
+              <p className="text-blue-100">
+                {!isRegistered 
+                  ? 'Add symptoms and health background with AI for faster consultations.'
+                  : 'Update your medical information anytime with our AI assistant.'}
+              </p>
             </div>
-            <div className="flex gap-3">
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {!isRegistered && (
               <Button 
                 size="lg" 
                 className="bg-white text-blue-600 hover:bg-blue-50"
@@ -235,17 +229,17 @@ const PatientDashboard = () => {
                 <Mic className="h-5 w-5 mr-2" />
                 Start AI Intake
               </Button>
-              <Button 
-                size="lg" 
-                className="bg-blue-500 hover:bg-blue-400 text-white"
-                onClick={() => navigate('/patient/medical-form')}
-              >
-                <Sparkles className="h-5 w-5 mr-2" />
-                AI Form Filler
-              </Button>
-            </div>
+            )}
+            <Button 
+              size="lg" 
+              className="bg-blue-500 hover:bg-blue-400 text-white"
+              onClick={() => navigate('/patient/medical-form')}
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              AI Form Filler
+            </Button>
           </div>
-        )}
+        </div>
 
         <Tabs defaultValue="waiting-room" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-4">
@@ -293,22 +287,13 @@ const PatientDashboard = () => {
               <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-2 min-w-[220px]">
                 <label className="text-sm font-medium text-gray-700">Or choose manually</label>
-                <Select
+                <DisclosureDropdown
                   value={manualChiefComplaint}
                   onValueChange={setManualChiefComplaint}
+                  placeholder="Select reason"
+                  options={MANUAL_VISIT_CHIEF}
                   disabled={creatingToken || !isRegistered || !!currentToken}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select reason" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MANUAL_VISIT_CHIEF.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
               <Button
                 onClick={handleGetToken}
@@ -464,15 +449,6 @@ const PatientDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* AI Medical Form Filler - Floating Widget */}
-        <AIMedicalFormFiller onFormFilled={(formData) => {
-          toast({
-            title: 'Medical Information Extracted',
-            description: `Found ${formData.chronic_conditions.length} conditions, ${formData.allergies.length} allergies, ${formData.current_medications.length} medications`,
-            duration: 3000,
-          });
-        }} />
       </main>
     </div>
   );

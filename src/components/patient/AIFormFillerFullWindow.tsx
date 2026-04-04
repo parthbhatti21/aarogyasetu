@@ -52,7 +52,7 @@ export function AIFormFillerFullWindow() {
     resetTranscript,
   } = useSpeechRecognition();
 
-  const { speakText, isSpeaking } = useSpeechSynthesis();
+  const { speak, isSpeaking } = useSpeechSynthesis();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const aiServiceRef = useRef<CohereAIChatService | null>(null);
@@ -67,9 +67,9 @@ export function AIFormFillerFullWindow() {
 What's your name?`;
 
       setMessages([{ role: 'assistant', content: greeting }]);
-      speakText(greeting, 'en-IN').catch(() => {});
+      speak(greeting, 'en-IN');
     }
-  }, []);
+  }, [speak]);
 
   // Auto-scroll
   useEffect(() => {
@@ -85,11 +85,95 @@ What's your name?`;
   }, [isListening, transcript, resetTranscript]);
 
   // Extract form data from conversation
-  const extractFormData = (service: CohereAIChatService) => {
+  const extractFormData = async (service: CohereAIChatService): Promise<Partial<FormData>> => {
     const history = service.getHistory();
-    const conversationText = history
+    const userMessages = history
+      .filter(msg => msg.role === 'user')
       .map(msg => msg.content)
-      .join(' ');
+      .join('\n');
+
+    const extractionPrompt = `Extract structured medical form data from this patient conversation. Return ONLY a valid JSON object with these fields (use null for missing data):
+{
+  "full_name": "extracted name or null",
+  "age": "extracted age number or null",
+  "gender": "Male/Female/Other or null",
+  "phone": "10-digit number or null",
+  "email": "email or null",
+  "address": "full address or null",
+  "city": "city name or null",
+  "state": "state name or null",
+  "pincode": "6-digit code or null",
+  "blood_group": "blood group like O+ or null",
+  "chief_complaint": "main reason for visit or null",
+  "symptoms": ["array of symptoms or empty array"],
+  "chronic_conditions": ["array of conditions or empty array"],
+  "allergies": ["array of allergies or empty array"],
+  "current_medications": ["array of medications or empty array"]
+}
+
+Patient conversation:
+${userMessages}
+
+Extract ALL data you can find. For names, look for any mention like "this is parth", "i'm parth", "parth here", etc. For medications/conditions/symptoms, capture any medical terms mentioned. Return ONLY valid JSON, no other text.`;
+
+    try {
+      const response = await fetch('https://api.cohere.ai/v1/generate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer eeW4xQr5CnWGYdRsyAyQ072sHhUU1TFPZ9ZAkufa`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: extractionPrompt,
+          model: 'command-a-03-2025',
+          max_tokens: 500,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Smart extraction API failed, falling back to regex');
+        return extractFormDataRegex(userMessages);
+      }
+
+      const data = await response.json();
+      const responseText = data.generations[0]?.text || '{}';
+      
+      // Parse JSON from response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn('⚠️ Could not parse JSON, falling back to regex');
+        return extractFormDataRegex(userMessages);
+      }
+
+      const extracted = JSON.parse(jsonMatch[0]);
+      
+      // Clean up and validate extracted data
+      return {
+        full_name: extracted.full_name || undefined,
+        age: extracted.age?.toString() || undefined,
+        gender: extracted.gender || undefined,
+        phone: extracted.phone || undefined,
+        email: extracted.email || undefined,
+        address: extracted.address || undefined,
+        city: extracted.city || undefined,
+        state: extracted.state || undefined,
+        pincode: extracted.pincode || undefined,
+        blood_group: extracted.blood_group || undefined,
+        chief_complaint: extracted.chief_complaint || undefined,
+        symptoms: Array.isArray(extracted.symptoms) ? extracted.symptoms : [],
+        chronic_conditions: Array.isArray(extracted.chronic_conditions) ? extracted.chronic_conditions : [],
+        allergies: Array.isArray(extracted.allergies) ? extracted.allergies : [],
+        current_medications: Array.isArray(extracted.current_medications) ? extracted.current_medications : [],
+      };
+    } catch (error) {
+      console.warn('⚠️ Smart extraction error:', error, 'falling back to regex');
+      return extractFormDataRegex(userMessages);
+    }
+  };
+
+  // Fallback regex-based extraction
+  const extractFormDataRegex = (userMessages: string): Partial<FormData> => {
 
     const extracted: Partial<FormData> = {
       chronic_conditions: [],
@@ -99,24 +183,87 @@ What's your name?`;
     };
 
     // Extract name
-    const nameMatch = conversationText.match(/(?:name is|i am|i'm|called)\s+([a-zA-Z\s]+?)(?:\.|,|and|$)/i);
+    const nameMatch = userMessages.match(/(?:name is|i am|i'm|called|my name)\s+([a-zA-Z\s]+?)(?:\.|,|and|$)/i);
     if (nameMatch) extracted.full_name = nameMatch[1].trim();
 
     // Extract age
-    const ageMatch = conversationText.match(/(?:age|i am|i'm)\s+(\d{1,3})\s*(?:years?|yr)?/i);
+    const ageMatch = userMessages.match(/(\d{1,3})\s*(?:years?|yr)?/);
     if (ageMatch) extracted.age = ageMatch[1];
 
-    // Extract gender
-    if (/(male|man|boy)/i.test(conversationText)) extracted.gender = 'Male';
-    else if (/(female|woman|girl)/i.test(conversationText)) extracted.gender = 'Female';
+    // Extract gender - handle typos like msle → male
+    const genderText = userMessages.toLowerCase();
+    if (/male|m[a-z]*le|man|boy|msle/.test(genderText)) {
+      extracted.gender = 'Male';
+    } else if (/female|f[a-z]*le|woman|girl|fmale|femaile/.test(genderText)) {
+      extracted.gender = 'Female';
+    } else if (/other/.test(genderText)) {
+      extracted.gender = 'Other';
+    }
 
-    // Extract phone
-    const phoneMatch = conversationText.match(/(\d{10})/);
+    // Extract phone (10 digits)
+    const phoneMatch = userMessages.match(/(\d{10})/);
     if (phoneMatch) extracted.phone = phoneMatch[1];
 
     // Extract email
-    const emailMatch = conversationText.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    const emailMatch = userMessages.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
     if (emailMatch) extracted.email = emailMatch[1];
+
+    // Extract address - look for all words after "address" or "at" or any long text block
+    const addressPatterns = [
+      /address[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|at|near|next|\$)/i,
+      /apt|apartment|house|flat|plot[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|at|near|\$)/i,
+      /(\d+[a-zA-Z0-9\s,.-]+?)(?:vadodara|city|state|near|next)/i,
+    ];
+    for (const pattern of addressPatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        extracted.address = match[1].trim().replace(/\s+/g, ' ');
+        break;
+      }
+    }
+
+    // If still no address, try to capture any text block that mentions apartment/street patterns
+    if (!extracted.address) {
+      const textBlocks = userMessages.split(/\./);
+      for (const block of textBlocks) {
+        if (/apartment|flat|house|plot|street|road|lane/i.test(block) && block.length > 10) {
+          extracted.address = block.trim().replace(/\s+/g, ' ');
+          break;
+        }
+      }
+    }
+
+    // Extract city - Indian cities and common patterns
+    const cities = [
+      'vadodara', 'ahmedabad', 'surat', 'rajkot',
+      'mumbai', 'pune', 'nagpur', 'nashik',
+      'delhi', 'delhi ncr', 'gurgaon', 'noida',
+      'bangalore', 'hyderabad', 'chennai', 'kolkata'
+    ];
+    const cityPattern = new RegExp(`\\b(${cities.join('|')})\\b`, 'i');
+    const cityMatch = userMessages.match(cityPattern);
+    if (cityMatch) extracted.city = cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1).toLowerCase();
+
+    // Extract state - Indian states
+    const states = [
+      'gujarat', 'maharashtra', 'karnataka', 'telangana', 'delhi', 
+      'punjab', 'tamil nadu', 'uttar pradesh', 'west bengal', 
+      'rajasthan', 'bihar', 'haryana', 'goa', 'kerala', 'madhya pradesh'
+    ];
+    const statePattern = new RegExp(`\\b(${states.join('|')})\\b`, 'i');
+    const stateMatch = userMessages.match(statePattern);
+    if (stateMatch) extracted.state = stateMatch[1].charAt(0).toUpperCase() + stateMatch[1].slice(1).toLowerCase();
+
+    // Extract pincode (6 digits for India) - be more specific
+    const pincodeMatches = userMessages.match(/\b(\d{6})\b/g);
+    if (pincodeMatches && pincodeMatches.length > 0) {
+      // Use the first 6-digit number found (usually it's near the city)
+      extracted.pincode = pincodeMatches[0];
+    }
+
+    // Extract blood group
+    const bloodGroupMatch = userMessages.match(/\b(a\+|a-|b\+|b-|ab\+|ab-|o\+|o-)\b/i);
+    if (bloodGroupMatch) extracted.blood_group = bloodGroupMatch[1].toUpperCase();
 
     // Extract chronic conditions
     const chronicKeywords = [
@@ -138,7 +285,7 @@ What's your name?`;
     ];
 
     extracted.chronic_conditions = chronicKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(conversationText)
+      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
     ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
     // Extract allergies
@@ -156,7 +303,7 @@ What's your name?`;
     ];
 
     extracted.allergies = allergyKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(conversationText)
+      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
     ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
     // Extract symptoms
@@ -180,8 +327,44 @@ What's your name?`;
     ];
 
     extracted.symptoms = symptomKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(conversationText)
+      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
     ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+
+    // Extract chief complaint - look for consultation/reason/visit patterns
+    const chiefMatch = userMessages.match(/(?:chief complaint|reason|visit|consultation)\s+(?:for|of|is|about)\s+([a-zA-Z\s]+?)(?:\.|,|$)/i);
+    if (chiefMatch) extracted.chief_complaint = chiefMatch[1].trim();
+
+    // Extract current medications - both keywords and free text
+    const medicationKeywords = [
+      'aspirin',
+      'ibuprofen',
+      'paracetamol',
+      'acetaminophen',
+      'metformin',
+      'lisinopril',
+      'amlodipine',
+      'atorvastatin',
+      'omeprazole',
+      'amoxicillin',
+      'vitamin',
+      'multivitamin',
+    ];
+
+    extracted.current_medications = medicationKeywords.filter(kw =>
+      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
+    ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+
+    // If no keyword match, try to capture any mentioned medication (after "taking" or "on")
+    if (extracted.current_medications.length === 0) {
+      const medMatch = userMessages.match(/(?:taking|on|using|have)\s+([a-zA-Z0-9\s]+?)(?:\.|,|$)/i);
+      if (medMatch) {
+        const medText = medMatch[1].trim();
+        // Only add if it looks like a medication (not too short and not common words)
+        if (medText.length > 2 && !/^(a|an|yes|no)$/i.test(medText)) {
+          extracted.current_medications.push(medText);
+        }
+      }
+    }
 
     return extracted;
   };
@@ -196,26 +379,36 @@ What's your name?`;
     try {
       // Add user message
       setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+      console.log('📤 Sending message:', userMessage);
 
       // Get AI response
+      console.log('⏳ Waiting for Cohere API response...');
       const response = await aiServiceRef.current.sendMessage(userMessage);
+      console.log('✅ Got response:', response);
+      
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 
       // Speak response
       if (voiceEnabled) {
-        await speakText(response, 'en-IN').catch(() => {});
+        speak(response, 'en-IN');
       }
 
       // Extract form data
       const extracted = extractFormData(aiServiceRef.current);
-      setFormData(prev => ({ ...prev, ...extracted }));
+      console.log('📋 Extracted data:', extracted);
+      setFormData(prev => {
+        const updated = { ...prev, ...extracted };
+        console.log('📝 Updated formData:', updated);
+        return updated;
+      });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
+          content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
         },
       ]);
     } finally {

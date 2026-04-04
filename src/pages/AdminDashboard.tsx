@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope, Filter } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { signUpWithPassword } from '@/utils/auth';
@@ -328,30 +329,24 @@ const AdminDashboard = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="doctor-role">Role</Label>
-                  <select
-                    id="doctor-role"
-                    className="w-full border border-input rounded-md bg-background px-3 py-2 text-sm"
+                  <DisclosureDropdown
                     value={doctorRole}
-                    onChange={(e) => setDoctorRole(e.target.value as 'doctor' | 'senior_doctor')}
-                  >
-                    <option value="doctor">Doctor</option>
-                    <option value="senior_doctor">Senior Doctor</option>
-                  </select>
+                    onValueChange={(value) => setDoctorRole(value as 'doctor' | 'senior_doctor')}
+                    placeholder="Select Role"
+                    options={[
+                      { label: 'Doctor', value: 'doctor' },
+                      { label: 'Senior Doctor', value: 'senior_doctor' },
+                    ]}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="doctor-specialty">Specialty</Label>
-                  <select
-                    id="doctor-specialty"
-                    className="w-full border border-input rounded-md bg-background px-3 py-2 text-sm"
+                  <DisclosureDropdown
                     value={doctorSpecialty}
-                    onChange={(e) => setDoctorSpecialty(e.target.value)}
-                  >
-                    {DOCTOR_SPECIALTIES.map((spec) => (
-                      <option key={spec.value} value={spec.value}>
-                        {spec.label}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setDoctorSpecialty}
+                    placeholder="Select Specialty"
+                    options={DOCTOR_SPECIALTIES}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Hospital Selection *</Label>

@@ -22,29 +22,29 @@ export interface ExtractedPatientData {
 
 const LOCALE_GREETINGS: Record<string, string> = {
   'en-IN':
-    "Hello! I'm your AI health assistant. Please tell me about your symptoms or health concerns today.",
+    "Hello! I'm here to help you fill out your medical registration form. I'll ask you a few questions to gather your information. Let's start - what's your name?",
   'en-US':
-    "Hello! I'm your AI health assistant. Please tell me about your symptoms or health concerns today.",
+    "Hello! I'm here to help you fill out your medical registration form. I'll ask you a few questions to gather your information. Let's start - what's your name?",
   'hi-IN':
-    'नमस्ते! मैं आपका AI स्वास्थ्य सहायक हूँ। कृपया अपने लक्षण या स्वास्थ्य संबंधी चिंताएँ बताएँ।',
+    'नमस्ते! मैं आपका चिकित्सा पंजीकरण फॉर्म भरने में मदद करूंगा। मैं आपके बारे में कुछ सवाल पूछूंगा। शुरुआत करते हैं - आपका नाम क्या है?',
   'ta-IN':
-    'வணக்கம்! நான் உங்கள் AI உடல்நல உதவியாளர். உங்கள் அறிகுறிகள் அல்லது உடல்நலக் கவலைகளைச் சொல்லுங்கள்.',
+    'வணக்கம்! உங்கள் மருத்துவ பதிவு படிவத்தை நிரப்ப உதவுவேன். உங்கள் பற்றி சில கேள்விகளைக் கேட்டுக்கொள்வேன். ஆரம்பிக்கலாம் - உங்கள் பெயர் என்ன?',
   'te-IN':
-    'నమస్కారం! నేను మీ AI ఆరోగ్య సహాయకుడిని. దయచేసి మీ లక్షణాలు లేదా ఆరోగ్య సమస్యల గురించి చెప్పండి.',
+    'నమస్కారం! మీ వైద్యుల నమోదు ఫారమ్‌ను పూరించడంలో సహాయం చేస్తాను. మీ గురించి కొన్ని ప్రశ్నలను అడుగుతాను. ఆరంభిద్దాం - మీ పేరు ఏమిటి?',
   'kn-IN':
-    'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಆರೋಗ್ಯ ಸಹಾಯಕ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಲಕ್ಷಣಗಳು ಅಥವಾ ಆರೋಗ್ಯ ಕಾಳಜಿಗಳ ಬಗ್ಗೆ ಹೇಳಿ.',
+    'ನಮಸ್ಕಾರ! ಪ್ರವೇಶ ನಮೂದು ಫಾರ್ಮ್ ಭರ್ತಿ ಮಾಡಲು ನಾನು ಸಹಾಯ ಮಾಡುತ್ತೇನೆ. ನಿಮ್ಮ ಬಗ್ಗೆ ನಾನು ಕೆಲವು ಪ್ರಶ್ನೆ ಕೇಳುತ್ತೇನೆ. ಶುರುವಾಗಿದೆ - ನಿಮ್ಮ ಹೆಸರು ಏನು?',
   'ml-IN':
-    'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI ആരോഗ്യ സഹായി. നിങ്ങളുടെ ലക്ഷണങ്ങളോ ആരോഗ്യ ആശങ്കകളോ പറയുക.',
+    'നമസ്കാരം! മെഡിക്കൽ രജിസ്ട്രേഷൻ ഫോം പൂരിപ്പിക്കാൻ ഞാൻ സഹായിക്കും. നിങ്ങളെക്കുറിച്ച് ചില ചോദ്യങ്ങൾ ചോദിക്കും. ആരംഭിക്കാം - നിങ്ങളുടെ പേരെന്ത്?',
   'mr-IN':
-    'नमस्कार! मी तुमचा AI आरोग्य सहाय्यक आहे. कृपया तुमची लक्षणे किंवा आरोग्यासंबंधी चिंता सांगा.',
+    'नमस्कार! मी तुमचा वैद्यकीय नोंदणी फॉर्म भरण्यास मदत करू. तुम्हाला काही प्रश्न विचारु शकतो. सुरु करूया - तुमचे नाव काय आहे?',
   'bn-IN':
-    'নমস্কার! আমি আপনার AI স্বাস্থ্য সহায়ক। আপনার উপসর্গ বা স্বাস্থ্য নিয়ে উদ্বেগ জানান।',
+    'নমস্কার! আমি আপনার চিকিৎসা নিবন্ধন ফর্ম পূরণ করতে সাহায্য করব। আমি আপনার সম্পর্কে কয়েকটি প্রশ্ন করব। শুরু করি - আপনার নাম কী?',
   'gu-IN':
-    'નમસ્તે! હું તમારો AI આરોગ્ય સહાયક છું. કૃપા કરીને તમારા લક્ષણો અથવા આરોગ્ય ચિંતાઓ જણાવો.',
+    'નમસ્તે! મેડિકલ નોંધણી ફોર્મ ભરવામાં આપને મદદ કરીશ. આપના વિશે કેટલાક પ્રશ્નો પૂછીશ. શરુ કરીએ - આપનું નામ શું છે?',
   'pa-IN':
-    'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ AI ਸਿਹਤ ਸਹਾਇਕ ਹਾਂ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਲੱਛਣ ਜਾਂ ਸਿਹਤ ਸੰਬੰਧੀ ਚਿੰਤਾਵਾਂ ਦੱਸੋ।',
+    'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡੇ ਮੈਡੀਕਲ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਫਾਰਮ ਨੂੰ ਭਰਨ ਵਿੱਚ ਮਦਦ ਕਰਾਂ ਗਾ. ਮੈਂ ਤੁਹਾਡੇ ਬਾਰੇ ਕੁਝ ਸਵਾਲ ਪੁੱਛਾਂ ਗਾ. ਸ਼ੁਰੂ ਕਰੀਏ - ਤੁਹਾਡਾ ਨਾਮ ਕੀ ਹੈ?',
   'or-IN':
-    'ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କର AI ସ୍ୱାସ୍ଥ୍ୟ ସହାୟକ। ଦୟାକରି ଆପଣଙ୍କ ଲକ୍ଷଣ କିମ୍ବା ସ୍ୱାସ୍ଥ୍ୟ ଚିନ୍ତା କୁହନ୍ତୁ।',
+    'ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କୁ ମେଡିକାଲ ରେଜିସ୍ଟ୍ରେସନ ଫର୍ମ ପୂରଣ କରିବାରେ ସାହାଯ୍ୟ କରିବି। ମୁଁ ଆପଣଙ୍କ ବିଷୟରେ ଅଳ୍ପ ଶୋଧନ ପଚାରିବି। ଆରମ୍ଭ କଲେ - ଆପଣଙ୍କ ନାମ କଣ?',
 };
 
 const LOCALE_NAMES: Record<string, string> = {
@@ -91,11 +91,41 @@ export class CohereAIChatService {
 
   private buildPreamble(): string {
     const langName = LOCALE_NAMES[this.locale] || 'English';
-    const base = `You are a helpful medical assistant helping patients describe their symptoms. ask one question at a time.
-Ask clarifying questions about their symptoms, duration, severity, and any other relevant health information.
-Be empathetic and professional. Keep responses concise and focused on gathering medical information.
-After gathering enough information, summarize the chief complaint and symptoms in a clear, structured way. Give a simple response without extra explanation or symbols when possible.
-The patient's preferred language is ${langName} (${this.locale}). Respond in ${langName} so they can use voice playback in that language. If they write in another language, still reply in ${langName}.`;
+    const base = `You are a helpful form-filling assistant. Your job is to collect patient information systematically, NOT to provide medical advice or express concern about their health.
+
+IMPORTANT INSTRUCTIONS:
+1. Ask ONE question at a time to gather the following information IN THIS ORDER:
+   - Name (if not already provided)
+   - Age (years)
+   - Gender
+   - Phone (10-digit number)
+   - Email
+   - Address
+   - City
+   - State
+   - Pincode
+   - Blood Group
+   - Current Symptoms (what they're experiencing)
+   - Medical History/Chronic Conditions (any ongoing health issues)
+   - Allergies (any medication or food allergies)
+   - Current Medications (any medicines they're taking)
+   - Chief Complaint (main reason for visit)
+
+2. DO NOT:
+   - Ask medical questions about severity, temperature, or diagnosis
+   - Express concern or worry about symptoms
+   - Give medical advice or recommendations
+   - Ask about treatment options
+   - Make medical assessments
+
+3. DO:
+   - Simply collect the facts the user provides
+   - Ask neutral, factual questions only
+   - Keep responses short and simple
+   - Focus on gathering data, not medical consultation
+
+The patient's preferred language is ${langName} (${this.locale}). Respond in ${langName}.
+Keep responses natural and conversational while staying focused on data collection.`;
 
     return base;
   }
@@ -117,7 +147,10 @@ The patient's preferred language is ${langName} (${this.locale}). Respond in ${l
           message: msg.content,
         }));
 
-      // Call Cohere API
+      // Call Cohere API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(COHERE_API_URL, {
         method: 'POST',
         headers: {
@@ -131,7 +164,10 @@ The patient's preferred language is ${langName} (${this.locale}). Respond in ${l
           temperature: 0.7,
           preamble: this.buildPreamble(),
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -151,6 +187,12 @@ The patient's preferred language is ${langName} (${this.locale}). Respond in ${l
       return assistantMessage;
     } catch (error) {
       console.error('Cohere API error:', error);
+      
+      // Handle abort/timeout
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - the API took too long to respond. Please try again.');
+      }
+      
       throw new Error(error instanceof Error ? error.message : 'Failed to get AI response');
     }
   }
