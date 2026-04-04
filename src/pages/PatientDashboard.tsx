@@ -204,50 +204,7 @@ const PatientDashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto">
-        {/* AI Tools Section - Compact Cards */}
-        <div className="mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* AI Form Filler Card */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3 mb-3">
-                <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">AI Form Filler</h3>
-                  <p className="text-sm text-gray-600">Fill medical forms with AI assistance</p>
-                </div>
-              </div>
-              <Button 
-                size="sm"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => navigate('/patient/medical-form')}
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Open Form Filler
-              </Button>
-            </div>
-
-            {/* Start AI Intake Card */}
-            {!isRegistered && (
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3 mb-3">
-                  <Mic className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">AI Intake</h3>
-                    <p className="text-sm text-gray-600">Start your registration with AI</p>
-                  </div>
-                </div>
-                <Button 
-                  size="sm"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => navigate('/patient/register')}
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Start Intake
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* AI Tools Section - Moved to waiting room tab */}
 
         <Tabs defaultValue="waiting-room" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-4">
@@ -271,6 +228,51 @@ const PatientDashboard = () => {
 
           {/* Virtual Waiting Room Tab */}
           <TabsContent value="waiting-room" className="space-y-6">
+            {/* AI Tools Section - Compact Cards */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* AI Form Filler Card */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">AI Form Filler</h3>
+                      <p className="text-sm text-gray-600">Fill medical forms with AI assistance</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => navigate('/patient/medical-form')}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Open Form Filler
+                  </Button>
+                </div>
+
+                {/* Start AI Intake Card */}
+                {!isRegistered && (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3 mb-3">
+                      <Mic className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">AI Intake</h3>
+                        <p className="text-sm text-gray-600">Start your registration with AI</p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => navigate('/patient/register')}
+                    >
+                      <Mic className="h-4 w-4 mr-2" />
+                      Start Intake
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <h2 className="text-2xl font-bold mb-2">Virtual Waiting Room</h2>
               <p className="text-gray-600">Real-time queue updates and token status</p>
