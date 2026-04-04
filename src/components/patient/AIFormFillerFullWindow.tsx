@@ -64,7 +64,7 @@ export function AIFormFillerFullWindow() {
 
       const greeting = `Hello! I'm your AI Health Assistant. I'll help you fill out your medical information through a conversation. Let's start with some basic details.
 
-What's your name?`;
+What's your full name?`;
 
       setMessages([{ role: 'assistant', content: greeting }]);
       speak(greeting, 'en-IN');
@@ -92,66 +92,80 @@ What's your name?`;
       .map(msg => msg.content)
       .join('\n');
 
-    const extractionPrompt = `Extract structured medical form data from this patient conversation. Return ONLY a valid JSON object with these fields (use null for missing data):
-{
-  "full_name": "extracted name or null",
-  "age": "extracted age number or null",
-  "gender": "Male/Female/Other or null",
-  "phone": "10-digit number or null",
-  "email": "email or null",
-  "address": "full address or null",
-  "city": "city name or null",
-  "state": "state name or null",
-  "pincode": "6-digit code or null",
-  "blood_group": "blood group like O+ or null",
-  "chief_complaint": "main reason for visit or null",
-  "symptoms": ["array of symptoms or empty array"],
-  "chronic_conditions": ["array of conditions or empty array"],
-  "allergies": ["array of allergies or empty array"],
-  "current_medications": ["array of medications or empty array"]
-}
+    console.log('📚 User messages for extraction:', userMessages);
+
+    // Use AI-based extraction first
+    const aiExtracted = await extractWithAI(userMessages);
+    if (aiExtracted) {
+      console.log('✨ AI extraction successful:', aiExtracted);
+      return aiExtracted;
+    }
+
+    // Fallback to regex
+    console.log('⚙️ Using regex fallback extraction');
+    return extractFormDataRegex(userMessages);
+  };
+
+  const extractWithAI = async (userMessages: string): Promise<Partial<FormData> | null> => {
+    const extractionPrompt = `You are a data extraction assistant. Extract medical information from this patient conversation and respond with ONLY valid JSON (no markdown, no explanation).
 
 Patient conversation:
 ${userMessages}
 
-Extract ALL data you can find. For names, look for any mention like "this is parth", "i'm parth", "parth here", etc. For medications/conditions/symptoms, capture any medical terms mentioned. Return ONLY valid JSON, no other text.`;
+Extract and respond with this JSON format exactly (use null for missing data):
+{
+  "full_name": "patient name or null",
+  "age": "age as number or null",
+  "gender": "Male/Female/Other or null",
+  "phone": "10-digit phone or null",
+  "email": "email or null",
+  "address": "full street address or null",
+  "city": "city name or null",
+  "state": "state name or null",
+  "pincode": "6-digit postal code or null",
+  "blood_group": "blood group or null",
+  "chief_complaint": "main reason for visit or null",
+  "symptoms": ["list", "of", "symptoms"],
+  "chronic_conditions": ["list", "of", "conditions"],
+  "allergies": ["list", "of", "allergies"],
+  "current_medications": ["list", "of", "medications"]
+}`;
 
     try {
-      const response = await fetch('https://api.cohere.ai/v1/generate', {
+      const response = await fetch('https://api.cohere.ai/v1/chat', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer eeW4xQr5CnWGYdRsyAyQ072sHhUU1TFPZ9ZAkufa`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: extractionPrompt,
+          message: extractionPrompt,
           model: 'command-a-03-2025',
-          max_tokens: 500,
-          temperature: 0.3,
+          temperature: 0.1,
         }),
       });
 
       if (!response.ok) {
-        console.warn('⚠️ Smart extraction API failed, falling back to regex');
-        return extractFormDataRegex(userMessages);
+        console.warn('⚠️ AI extraction API error:', response.status);
+        return null;
       }
 
       const data = await response.json();
-      const responseText = data.generations[0]?.text || '{}';
+      const responseText = data.text || '{}';
+      console.log('🤖 AI response:', responseText);
       
       // Parse JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.warn('⚠️ Could not parse JSON, falling back to regex');
-        return extractFormDataRegex(userMessages);
+        console.warn('⚠️ No JSON found in response');
+        return null;
       }
 
       const extracted = JSON.parse(jsonMatch[0]);
       
-      // Clean up and validate extracted data
       return {
         full_name: extracted.full_name || undefined,
-        age: extracted.age?.toString() || undefined,
+        age: extracted.age ? String(extracted.age) : undefined,
         gender: extracted.gender || undefined,
         phone: extracted.phone || undefined,
         email: extracted.email || undefined,
@@ -161,14 +175,14 @@ Extract ALL data you can find. For names, look for any mention like "this is par
         pincode: extracted.pincode || undefined,
         blood_group: extracted.blood_group || undefined,
         chief_complaint: extracted.chief_complaint || undefined,
-        symptoms: Array.isArray(extracted.symptoms) ? extracted.symptoms : [],
-        chronic_conditions: Array.isArray(extracted.chronic_conditions) ? extracted.chronic_conditions : [],
-        allergies: Array.isArray(extracted.allergies) ? extracted.allergies : [],
-        current_medications: Array.isArray(extracted.current_medications) ? extracted.current_medications : [],
+        symptoms: Array.isArray(extracted.symptoms) ? extracted.symptoms.filter(s => s) : [],
+        chronic_conditions: Array.isArray(extracted.chronic_conditions) ? extracted.chronic_conditions.filter(s => s) : [],
+        allergies: Array.isArray(extracted.allergies) ? extracted.allergies.filter(s => s) : [],
+        current_medications: Array.isArray(extracted.current_medications) ? extracted.current_medications.filter(s => s) : [],
       };
     } catch (error) {
-      console.warn('⚠️ Smart extraction error:', error, 'falling back to regex');
-      return extractFormDataRegex(userMessages);
+      console.warn('⚠️ AI extraction error:', error);
+      return null;
     }
   };
 
@@ -182,9 +196,32 @@ Extract ALL data you can find. For names, look for any mention like "this is par
       symptoms: [],
     };
 
-    // Extract name
-    const nameMatch = userMessages.match(/(?:name is|i am|i'm|called|my name)\s+([a-zA-Z\s]+?)(?:\.|,|and|$)/i);
-    if (nameMatch) extracted.full_name = nameMatch[1].trim();
+    // Extract name - multiple patterns
+    let nameExtracted = false;
+    const namePatterns = [
+      /(?:name is|i am|i'm|called|my name|this is)\s+([a-zA-Z\s]+?)(?:\.|,|and|$)/i,
+      /^([a-zA-Z]+)\s*(?:\.|,|here|$)/im, // First word alone (like "Parth")
+      /parth|sharma|(?:[A-Z][a-z]+\s+[A-Z][a-z]+)/i, // Known names or capitalized phrases
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        const name = match[1].trim();
+        // Validate it's actually a name (not too short, contains letters)
+        if (name.length > 2 && /[a-zA-Z]/.test(name)) {
+          extracted.full_name = name;
+          nameExtracted = true;
+          break;
+        }
+      }
+    }
+    
+    // If still no name, try extracting any capitalized word at the start
+    if (!nameExtracted) {
+      const firstCapitalMatch = userMessages.match(/\b([A-Z][a-z]+)\b/);
+      if (firstCapitalMatch) extracted.full_name = firstCapitalMatch[1];
+    }
 
     // Extract age
     const ageMatch = userMessages.match(/(\d{1,3})\s*(?:years?|yr)?/);
@@ -393,8 +430,9 @@ Extract ALL data you can find. For names, look for any mention like "this is par
         speak(response, 'en-IN');
       }
 
-      // Extract form data
-      const extracted = extractFormData(aiServiceRef.current);
+      // Extract form data using AI-based extraction
+      console.log('🧠 Starting smart data extraction...');
+      const extracted = await extractFormData(aiServiceRef.current);
       console.log('📋 Extracted data:', extracted);
       setFormData(prev => {
         const updated = { ...prev, ...extracted };
