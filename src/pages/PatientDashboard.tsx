@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/utils/supabase';
 import { autoAssignDoctor } from '@/utils/doctorAssignment';
 import { createTokenForPatient } from '@/services/tokenService';
-import { LogOut, Ticket, FileText, Bell, Pill, Sparkles, Mic } from 'lucide-react';
+import { Ticket, FileText, Bell, Pill, Sparkles, Mic } from 'lucide-react';
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
@@ -197,9 +197,7 @@ const PatientDashboard = () => {
               {patientEmail || 'Patient Portal'}
             </p>
           </div>
-          <Button variant="outline" onClick={() => { logout(); navigate('/'); }}>
-            <LogOut className="h-4 w-4 mr-2" /> Logout
-          </Button>
+
         </div>
       </header>
 
