@@ -20,15 +20,8 @@ export const Topbar = ({ title }: TopbarProps) => {
         <div className="text-sm font-semibold text-foreground">Hospital</div>
       </div>
 
-      {/* Page title */}
-      {title && (
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-        </div>
-      )}
-
       {/* Spacer */}
-      <div className="flex-1 hidden lg:block" />
+      <div className="flex-1" />
 
       {/* Notifications */}
       <Button
