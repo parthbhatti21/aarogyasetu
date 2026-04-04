@@ -14,10 +14,10 @@ export const Topbar = ({ title }: TopbarProps) => {
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 gap-4 z-40 shadow-sm">
-      {/* Logo and hospital name */}
+      {/* Logo and company name */}
       <div className="flex items-center gap-2">
-        <img src={LogoImage} alt="Aarogya Setu" className="h-8 w-8 rounded" />
-        <div className="text-sm font-semibold text-foreground">Hospital</div>
+        <img src={LogoImage} alt="AarogyaSetuX" className="h-8 w-8 rounded" />
+        <div className="text-sm font-semibold text-foreground">AarogyaSetuX</div>
       </div>
 
       {/* Spacer */}
