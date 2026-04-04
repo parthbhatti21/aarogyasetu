@@ -7,7 +7,12 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { createCohereAIChatService, type CohereAIChatService } from '@/services/cohereAIService';
 import { useSpeechRecognition, useSpeechSynthesis } from '@/hooks/useSpeech';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Mic, MicOff, Volume2, VolumeX, Send, ArrowLeft, Check } from 'lucide-react';
+import { savePatientMedicalInfo } from '@/services/patientMedicalInfoService';
+import { createTokenForPatient } from '@/services/tokenService';
+import { supabase } from '@/utils/supabase';
 
 interface FormData {
   // Personal Details (matching registration desk)
@@ -30,6 +35,8 @@ interface FormData {
 
 export function AIFormFillerFullWindow() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Partial<FormData>>({
     chronic_conditions: [],
     allergies: [],
@@ -43,6 +50,7 @@ export function AIFormFillerFullWindow() {
   const [isLoading, setIsLoading] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [currentStep, setCurrentStep] = useState<'greeting' | 'asking' | 'complete'>('greeting');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Speech hooks
   const {
@@ -63,19 +71,9 @@ export function AIFormFillerFullWindow() {
     if (!aiServiceRef.current) {
       aiServiceRef.current = createCohereAIChatService('en-IN');
 
-      const greeting = `Hello! I'm your AI Health Assistant. I'll help you fill out your medical information through a conversation. Let's start with some basic details.
+     const greeting = `Welcome! I'm your AI Health Assistant. I'll guide you through a quick 5–10 minute process to collect your personal, contact, and medical details. 
 
-Please provide:
-1. Your first name
-2. Your surname
-3. Your mobile number (10 digits)
-4. Your age
-5. Your gender (Male/Female/Other)
-6. Purpose of your visit (why are you here today?)
-
-After that, I'll ask about your address, occupation, income, billing type, and then medical history.
-
-Let's start! What's your first name?`;
+Let's begin — what's your first name?`;
 
       setMessages([{ role: 'assistant', content: greeting }]);
       speak(greeting, 'en-IN');
@@ -426,8 +424,105 @@ Extract and respond with this JSON format exactly (use null for missing data):
     }));
   };
 
-  const handleComplete = () => {
-    navigate('/patient', { state: { formData } });
+  const handleComplete = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Error',
+        description: 'User not authenticated',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validation
+    if (!formData.firstName || !formData.surname || !formData.mobileNumber || !formData.age || !formData.gender || !formData.purposeOfVisit) {
+      toast({
+        title: 'Missing Required Fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Save medical information
+      const result = await savePatientMedicalInfo(
+        {
+          patient_id: '',
+          full_name: `${formData.firstName} ${formData.surname}`,
+          age: formData.age,
+          gender: formData.gender,
+          phone: formData.mobileNumber,
+          email: '',
+          address: formData.address || '',
+          city: '',
+          state: '',
+          pincode: '',
+          blood_group: '',
+          chief_complaint: formData.purposeOfVisit,
+          symptoms: (formData.symptoms as string[])?.join(', ') || '',
+          chronic_conditions: (formData.chronic_conditions as string[])?.join(', ') || '',
+          allergies: (formData.allergies as string[])?.join(', ') || '',
+          current_medications: (formData.current_medications as string[])?.join(', ') || '',
+          source: 'ai', // Mark as AI-filled
+        },
+        user.id
+      );
+
+      const patientId = result?.id;
+      if (!patientId) {
+        throw new Error('Failed to retrieve patient ID');
+      }
+
+      // Get hospital ID from sessionStorage or patient record
+      const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
+      
+      let hospitalId = selectedHospitalId;
+      if (!hospitalId) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('hospital_id')
+          .eq('id', patientId)
+          .single();
+        
+        hospitalId = patient?.hospital_id || null;
+      }
+
+      // Generate token
+      let tokenNumber = null;
+      if (hospitalId) {
+        const token = await createTokenForPatient({
+          patientId,
+          chiefComplaint: formData.purposeOfVisit,
+          symptoms: (formData.symptoms as string[]) || [],
+          visitType: 'General Consultation',
+          hospitalId,
+        });
+        tokenNumber = token.token_number;
+      }
+
+      toast({
+        title: 'Success',
+        description: tokenNumber 
+          ? `Your token ${tokenNumber} has been generated`
+          : 'Your medical information has been saved',
+        variant: 'default',
+      });
+
+      console.log('AI form completed and token generated:', { result, tokenNumber });
+      navigate('/patient');
+    } catch (error) {
+      console.error('Error completing form:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to complete form',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -653,10 +748,11 @@ Extract and respond with this JSON format exactly (use null for missing data):
             {/* Submit Button */}
             <Button
               onClick={handleComplete}
+              disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 mt-8"
             >
               <Check className="h-5 w-5 mr-2" />
-              Complete & Proceed
+              {isSubmitting ? 'Processing...' : 'Complete & Proceed'}
             </Button>
           </div>
         </div>

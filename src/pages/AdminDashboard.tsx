@@ -315,7 +315,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Professional Header */}
       <header className="border-b border-slate-200 bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-6 py-4 max-w-7xl mx-auto flex items-center justify-between">
+        {/* <div className="px-6 py-4 max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={LogoImage} alt="Aarogya Setu" className="h-10 w-10 object-contain" />
             <div>
@@ -337,7 +337,7 @@ const AdminDashboard = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </div> */}
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">

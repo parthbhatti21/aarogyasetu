@@ -9,6 +9,8 @@ import { FormSection } from '@/components/forms/FormSection';
 import { FormField } from '@/components/forms/FormField';
 import { useToast } from '@/hooks/use-toast';
 import { savePatientMedicalInfo } from '@/services/patientMedicalInfoService';
+import { createTokenForPatient } from '@/services/tokenService';
+import { supabase } from '@/utils/supabase';
 
 const PatientMedicalForm = () => {
   const navigate = useNavigate();
@@ -119,13 +121,49 @@ const PatientMedicalForm = () => {
         user.id
       );
 
+      // Get the patient ID from the saved result
+      const patientId = result?.id;
+      if (!patientId) {
+        throw new Error('Failed to retrieve patient ID');
+      }
+
+      // Get hospital ID from sessionStorage or patient record
+      const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
+      
+      // If no selected hospital, try to get from patient record
+      let hospitalId = selectedHospitalId;
+      if (!hospitalId) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('hospital_id')
+          .eq('id', patientId)
+          .single();
+        
+        hospitalId = patient?.hospital_id || null;
+      }
+
+      // Generate token
+      let tokenNumber = null;
+      if (hospitalId) {
+        const token = await createTokenForPatient({
+          patientId,
+          chiefComplaint: formData.purposeOfVisit,
+          symptoms: [],
+          visitType: 'General Consultation',
+          hospitalId,
+        });
+        tokenNumber = token.token_number;
+      }
+
       toast({
         title: "Success",
-        description: "Your medical information has been saved",
+        description: tokenNumber 
+          ? `Your token ${tokenNumber} has been generated`
+          : "Your medical information has been saved",
         variant: "default",
       });
 
-      console.log('Medical info saved:', result);
+      console.log('Medical info saved and token generated:', { result, tokenNumber });
       navigate('/patient');
     } catch (error) {
       console.error('Error saving form:', error);

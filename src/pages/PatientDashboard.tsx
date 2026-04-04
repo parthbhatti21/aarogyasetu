@@ -258,38 +258,7 @@ const PatientDashboard = () => {
               <p className="text-gray-600">Real-time queue updates and token status</p>
             </div>
 
-            <div className="flex flex-col gap-4 max-w-2xl">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Reason for visit (from AI chat)</label>
-                <div
-                  className={`rounded-md border px-3 py-2 text-sm min-h-[42px] flex items-center ${
-                    aiReasonPreview ? 'bg-white border-gray-200' : 'bg-gray-50 border-dashed text-gray-500'
-                  }`}
-                >
-                  {aiReasonPreview || 'Open AI Token Generator and describe your symptoms — this fills in automatically.'}
-                </div>
-                {aiReasonPreview && (
-                  <p className="text-xs text-gray-500">
-                    {aiIntakeReady ? 'Ready for token — you can use Get Token or finish in AI to generate.' : 'Add a bit more detail until this is marked valid in the AI window.'}
-                  </p>
-                )}
-              </div>
-              
-              <Button
-                size="sm"
-                onClick={handleGetToken}
-                disabled={
-                  creatingToken ||
-                  !isRegistered ||
-                  !!currentToken ||
-                  !aiIntakeReady
-                }
-                className="w-fit"
-              >
-                <Ticket className="h-4 w-4 mr-2" />
-                Get Token
-              </Button>
-            </div>
+            
             <VirtualWaitingRoom
               currentToken={currentToken}
               activeToken={activeToken}
