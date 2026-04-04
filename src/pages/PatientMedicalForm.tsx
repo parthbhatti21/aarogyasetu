@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
 import { Card } from '@/components/ui/card';
 import { ArrowLeft, Save } from 'lucide-react';
 import { FormSection } from '@/components/forms/FormSection';
@@ -13,15 +12,42 @@ const PatientMedicalForm = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    medicalHistory: '',
+    // Personal Details
+    full_name: '',
+    age: '',
+    gender: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    blood_group: '',
+    
+    // Medical Information
+    chronic_conditions: '',
     allergies: '',
-    currentMedications: '',
-    chronicConditions: '',
-    surgeries: '',
-    familyHistory: '',
-    lifestyleHabits: '',
-    additionalNotes: '',
+    current_medications: '',
+    chief_complaint: '',
+    symptoms: '',
   });
+
+  const GENDER_OPTIONS = [
+    { value: 'Male', label: 'Male' },
+    { value: 'Female', label: 'Female' },
+    { value: 'Other', label: 'Other' },
+  ];
+
+  const BLOOD_GROUP_OPTIONS = [
+    { value: 'O+', label: 'O+' },
+    { value: 'O-', label: 'O-' },
+    { value: 'A+', label: 'A+' },
+    { value: 'A-', label: 'A-' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B-', label: 'B-' },
+    { value: 'AB+', label: 'AB+' },
+    { value: 'AB-', label: 'AB-' },
+  ];
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -35,11 +61,8 @@ const PatientMedicalForm = () => {
     setIsLoading(true);
     
     try {
-      // Save form data
       console.log('Saving medical form:', formData);
       // Add API call here if needed
-      
-      // Show success and redirect
       navigate('/patient');
     } catch (error) {
       console.error('Error saving form:', error);
@@ -69,21 +92,154 @@ const PatientMedicalForm = () => {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Details Section */}
           <Card className="p-6">
-            <FormSection title="Medical History" description="Provide details about your medical background">
-              <FormField label="Medical History" required>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                  placeholder="Describe any past medical conditions, treatments, or procedures..."
-                  value={formData.medicalHistory}
-                  onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
+            <FormSection 
+              title="Personal Details" 
+              description="Provide your basic personal information"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Full Name" required>
+                  <Input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.full_name}
+                    onChange={(e) => handleInputChange('full_name', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="Age" required>
+                  <Input
+                    type="number"
+                    placeholder="Enter your age"
+                    value={formData.age}
+                    onChange={(e) => handleInputChange('age', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="Gender" required>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.gender}
+                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                  >
+                    <option value="">Select Gender</option>
+                    {GENDER_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <FormField label="Phone Number" required>
+                  <Input
+                    type="tel"
+                    placeholder="10-digit phone number"
+                    maxLength={10}
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="Email">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="Blood Group">
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.blood_group}
+                    onChange={(e) => handleInputChange('blood_group', e.target.value)}
+                  >
+                    <option value="">Select Blood Group</option>
+                    {BLOOD_GROUP_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </FormField>
+              </div>
+
+              <FormField label="Address" required>
+                <Input
+                  type="text"
+                  placeholder="Street address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
                 />
               </FormField>
 
-              <FormField label="Allergies" required>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="City">
+                  <Input
+                    type="text"
+                    placeholder="City"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="State">
+                  <Input
+                    type="text"
+                    placeholder="State"
+                    value={formData.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                  />
+                </FormField>
+
+                <FormField label="Pincode">
+                  <Input
+                    type="text"
+                    placeholder="Pincode"
+                    value={formData.pincode}
+                    onChange={(e) => handleInputChange('pincode', e.target.value)}
+                  />
+                </FormField>
+              </div>
+            </FormSection>
+          </Card>
+
+          {/* Medical Information Section */}
+          <Card className="p-6">
+            <FormSection 
+              title="Medical Information" 
+              description="Provide details about your medical history and current health"
+            >
+              <FormField label="Chief Complaint (Reason for Visit)" required>
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="List any known allergies (medications, foods, environmental, etc.)"
+                  placeholder="What is the main reason for your visit today?"
+                  value={formData.chief_complaint}
+                  onChange={(e) => handleInputChange('chief_complaint', e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="Symptoms">
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                  placeholder="Describe your symptoms in detail (enter multiple symptoms separated by commas)"
+                  value={formData.symptoms}
+                  onChange={(e) => handleInputChange('symptoms', e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="Chronic Conditions">
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                  placeholder="List any chronic conditions (diabetes, hypertension, asthma, etc. - separate by commas)"
+                  value={formData.chronic_conditions}
+                  onChange={(e) => handleInputChange('chronic_conditions', e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="Allergies">
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                  placeholder="List any known allergies (medications, foods, environmental, etc. - separate by commas)"
                   value={formData.allergies}
                   onChange={(e) => handleInputChange('allergies', e.target.value)}
                 />
@@ -92,60 +248,9 @@ const PatientMedicalForm = () => {
               <FormField label="Current Medications">
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="List all current medications with dosages"
-                  value={formData.currentMedications}
-                  onChange={(e) => handleInputChange('currentMedications', e.target.value)}
-                />
-              </FormField>
-            </FormSection>
-
-            <FormSection title="Chronic Conditions" description="Provide information about ongoing health conditions">
-              <FormField label="Chronic Conditions">
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="List any chronic conditions (diabetes, hypertension, asthma, etc.)"
-                  value={formData.chronicConditions}
-                  onChange={(e) => handleInputChange('chronicConditions', e.target.value)}
-                />
-              </FormField>
-
-              <FormField label="Previous Surgeries">
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="Describe any previous surgeries and when they occurred"
-                  value={formData.surgeries}
-                  onChange={(e) => handleInputChange('surgeries', e.target.value)}
-                />
-              </FormField>
-
-              <FormField label="Family Medical History">
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="Any significant medical conditions in your family (hereditary conditions, etc.)"
-                  value={formData.familyHistory}
-                  onChange={(e) => handleInputChange('familyHistory', e.target.value)}
-                />
-              </FormField>
-            </FormSection>
-
-            <FormSection title="Lifestyle" description="Share information about your lifestyle habits">
-              <FormField label="Lifestyle & Habits">
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="Smoking status, alcohol consumption, exercise frequency, diet habits, etc."
-                  value={formData.lifestyleHabits}
-                  onChange={(e) => handleInputChange('lifestyleHabits', e.target.value)}
-                />
-              </FormField>
-            </FormSection>
-
-            <FormSection title="Additional Information">
-              <FormField label="Additional Notes">
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-                  placeholder="Any other relevant medical information you'd like to share..."
-                  value={formData.additionalNotes}
-                  onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
+                  placeholder="List all current medications with dosages (separate by commas)"
+                  value={formData.current_medications}
+                  onChange={(e) => handleInputChange('current_medications', e.target.value)}
                 />
               </FormField>
             </FormSection>
