@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Bell, Menu, LogOut, User, Settings } from 'lucide-react';
+import { Bell, Menu, LogOut, User, Settings } from 'lucide-react';
 import LogoImage from '@/assets/logo.jpg';
 
 interface TopbarProps {
@@ -41,15 +40,6 @@ export const Topbar = ({ onMenuClick, title }: TopbarProps) => {
 
       {/* Spacer */}
       <div className="flex-1 hidden lg:block" />
-
-      {/* Search bar (hidden on mobile) */}
-      <div className="hidden sm:flex items-center gap-2 flex-1 lg:flex-none lg:w-64">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search patients, doctors..."
-          className="border-0 bg-transparent text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:bg-muted"
-        />
-      </div>
 
       {/* Notifications */}
       <Button
