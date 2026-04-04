@@ -15,7 +15,6 @@ import DoctorDashboard from "./pages/DoctorDashboard";
 import RegistrationDashboard from "./pages/RegistrationDashboard";
 import PatientDashboard from "./pages/PatientDashboard";
 import PatientMedicalForm from "./pages/PatientMedicalForm";
-import PatientSettings from "./pages/PatientSettings";
 import MedicalStoreAdminDashboard from "./pages/MedicalStoreAdminDashboard";
 import MedicalStoreSalesDashboard from "./pages/MedicalStoreSalesDashboard";
 import AIPatientRegistration from "./pages/AIPatientRegistration";
@@ -56,7 +55,6 @@ const App = () => (
               <Route path="/patient/register" element={<AIPatientRegistration />} />
               <Route path="/patient/medical-form" element={<AIFormFillerFullWindow />} />
               <Route path="/patient/medical-form-manual" element={<ProtectedRoute roles={['patient']} hideLayout><PatientMedicalForm /></ProtectedRoute>} />
-              <Route path="/patient/settings" element={<ProtectedRoute roles={['patient']} hideLayout><PatientSettings /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roles={['admin']} title="Admin Dashboard"><AdminDashboard /></ProtectedRoute>} />
               <Route path="/doctor" element={<ProtectedRoute roles={['doctor']} title="Doctor Dashboard"><DoctorDashboard /></ProtectedRoute>} />
               <Route path="/senior-doctor" element={<ProtectedRoute roles={['senior_doctor']} title="Doctor Dashboard"><DoctorDashboard /></ProtectedRoute>} />
