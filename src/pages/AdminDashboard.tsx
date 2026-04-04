@@ -10,6 +10,9 @@ import { supabase } from '@/utils/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
+import { HospitalFilter } from '@/components/admin/HospitalFilter';
+import { InlineHospitalSelector } from '@/components/admin/InlineHospitalSelector';
+import type { Hospital } from '@/types/database';
 
 interface DoctorProfile {
   id: string;
@@ -17,6 +20,8 @@ interface DoctorProfile {
   display_name: string;
   role: 'doctor' | 'senior_doctor';
   specialty?: string;
+  hospital_id?: string;
+  hospital_name?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -70,12 +75,16 @@ const AdminDashboard = () => {
   const [doctorPassword, setDoctorPassword] = useState('');
   const [doctorSpecialty, setDoctorSpecialty] = useState<string>('general');
   const [creatingDoctor, setCreatingDoctor] = useState(false);
+  const [doctorHospital, setDoctorHospital] = useState<Hospital | null>(null);
   
   // Doctor list states
   const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  
+  // Hospital filter
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
 
   const DOCTOR_SPECIALTIES = [
     { value: 'general', label: 'General Practice' },
@@ -120,13 +129,14 @@ const AdminDashboard = () => {
   const filteredDoctors = doctors.filter(doc => {
     if (specialtyFilter !== 'all' && doc.specialty !== specialtyFilter) return false;
     if (roleFilter !== 'all' && doc.role !== roleFilter) return false;
+    if (selectedHospital && doc.hospital_id !== selectedHospital.id) return false;
     return true;
   });
 
   const handleCreateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!doctorEmail || !doctorPassword || !doctorName) {
-      toast({ title: 'Fill all fields', variant: 'destructive' });
+    if (!doctorEmail || !doctorPassword || !doctorName || !doctorHospital) {
+      toast({ title: 'Fill all fields including hospital', variant: 'destructive' });
       return;
     }
 
@@ -148,25 +158,30 @@ const AdminDashboard = () => {
 
       if (rpcError) throw rpcError;
 
-      // Update specialty in staff_profiles
-      const { error: specialtyError } = await supabase
+      // Update specialty and hospital in staff_profiles
+      const { error: updateError } = await supabase
         .from('staff_profiles')
-        .update({ specialty: doctorSpecialty })
+        .update({ 
+          specialty: doctorSpecialty,
+          hospital_id: doctorHospital.id,
+          hospital_name: doctorHospital.hospital_name,
+        })
         .eq('user_id', createdUser.id);
 
-      if (specialtyError) {
-        console.error('Failed to set specialty:', specialtyError);
+      if (updateError) {
+        console.error('Failed to set specialty/hospital:', updateError);
       }
 
       toast({
         title: 'Account created',
-        description: `${doctorRole === 'senior_doctor' ? 'Senior doctor' : 'Doctor'} with ${DOCTOR_SPECIALTIES.find(s => s.value === doctorSpecialty)?.label} specialty created.`,
+        description: `${doctorRole === 'senior_doctor' ? 'Senior doctor' : 'Doctor'} at ${doctorHospital.hospital_name} created successfully.`,
       });
       setDoctorName('');
       setDoctorEmail('');
       setDoctorPassword('');
       setDoctorRole('doctor');
       setDoctorSpecialty('general');
+      setDoctorHospital(null);
       setShowCreateDoctor(false);
       await refresh();
     } catch (err: any) {
@@ -204,6 +219,8 @@ const AdminDashboard = () => {
             {error} (Ensure migrations applied and admin role is set in staff_profiles.)
           </div>
         )}
+
+        <HospitalFilter onSelect={setSelectedHospital} selectedHospital={selectedHospital} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={Users} label="Total patients (all time)" value={loading ? '…' : totalPatients} />
@@ -336,7 +353,11 @@ const AdminDashboard = () => {
                     ))}
                   </select>
                 </div>
-                <Button disabled={creatingDoctor} type="submit" className="w-full">
+                <div className="space-y-2">
+                  <Label>Hospital Selection *</Label>
+                  <InlineHospitalSelector onSelect={setDoctorHospital} selectedHospital={doctorHospital} />
+                </div>
+                <Button disabled={creatingDoctor || !doctorHospital} type="submit" className="w-full">
                   {creatingDoctor ? 'Creating...' : 'Create Doctor Account'}
                 </Button>
               </form>

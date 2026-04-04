@@ -32,6 +32,8 @@ export interface Patient {
   weight_kg?: number;
   user_id?: string;
   preferred_language?: string;
+  hospital_id?: string;
+  hospital_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -57,6 +59,7 @@ export interface Token {
   token_number: string;
   patient_id: string;
   hospital_id?: string;
+  hospital_name?: string;
   visit_date: string;
   visit_type?: string;
   department?: string;
@@ -109,6 +112,8 @@ export interface MedicalRecord {
   id: string;
   patient_id: string;
   token_id?: string;
+  hospital_id?: string;
+  hospital_name?: string;
   record_type: 'Consultation' | 'Lab Report' | 'Prescription' | 'Imaging' | 'Diagnosis' | 'Discharge Summary' | 'Other';
   record_date: string;
   diagnosis?: string;
@@ -135,6 +140,8 @@ export interface Prescription {
   prescription_id: string;
   patient_id: string;
   medical_record_id: string;
+  hospital_id?: string;
+  hospital_name?: string;
   prescribed_date: string;
   valid_until?: string;
   doctor_id?: string;
@@ -159,6 +166,8 @@ export interface Medicine {
   unit_price: number;
   expiry_date?: string;
   store_location?: string;
+  hospital_id?: string;
+  hospital_name?: string;
   requires_prescription: boolean;
   created_at: string;
   updated_at: string;
@@ -208,6 +217,9 @@ export interface StaffProfile {
   role: 'admin' | 'doctor' | 'senior_doctor' | 'registration_desk' | 'medical_store_admin' | 'medical_store_sales';
   display_name: string;
   department?: string;
+  specialty?: string;
+  hospital_id?: string;
+  hospital_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

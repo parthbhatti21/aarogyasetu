@@ -1,5 +1,5 @@
 import { supabase } from '@/utils/supabase';
-import type { Patient, Token } from '@/types/database';
+import type { Patient, Token, Hospital } from '@/types/database';
 
 export interface TokenWithPatient extends Token {
   patients?: Pick<Patient, 'id' | 'full_name' | 'patient_id' | 'phone'> | null;
@@ -13,6 +13,35 @@ export interface DoctorPatientStats {
 
 export async function fetchTodayDateString() {
   return new Date().toISOString().split('T')[0];
+}
+
+// Get list of all states with hospitals
+export async function fetchStates(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('hospitals')
+    .select('state', { count: 'exact' })
+    .order('state');
+
+  if (error) throw error;
+
+  // Get unique states
+  const states = Array.from(new Set((data || []).map(h => h.state).filter(Boolean))) as string[];
+  return states;
+}
+
+// Get hospitals filtered by state
+export async function fetchHospitalsByState(state?: string): Promise<Hospital[]> {
+  let query = supabase.from('hospitals').select('*').order('hospital_name');
+
+  if (state) {
+    query = query.eq('state', state);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return data || [];
 }
 
 export async function fetchAdminOverview(today: string, hospitalId?: string | null) {
