@@ -4,11 +4,12 @@ import type { Token } from '@/types/database';
 
 interface UseQueueOptions {
   patientId?: string;
+  hospitalId?: string;
   autoRefresh?: boolean;
 }
 
 export function useQueue(options: UseQueueOptions = {}) {
-  const { patientId, autoRefresh = true } = options;
+  const { patientId, hospitalId, autoRefresh = true } = options;
   
   const [currentToken, setCurrentToken] = useState<Token | null>(null);
   const [activeToken, setActiveToken] = useState<Token | null>(null);
@@ -44,16 +45,22 @@ export function useQueue(options: UseQueueOptions = {}) {
     }
   };
 
-  // Fetch currently active token
+  // Fetch currently active token (from same hospital)
   const fetchActiveToken = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tokens')
         .select('*')
         .eq('status', 'Active')
         .order('called_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      // Filter by hospital if provided
+      if (hospitalId) {
+        query = query.eq('hospital_id', hospitalId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       
@@ -63,17 +70,24 @@ export function useQueue(options: UseQueueOptions = {}) {
     }
   };
 
-  // Fetch all waiting tokens
+  // Fetch all waiting tokens (from same hospital)
   const fetchQueueData = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('tokens')
         .select('*')
         .eq('visit_date', today)
         .eq('status', 'Waiting')
         .order('queue_position', { ascending: true });
+
+      // Filter by hospital if provided
+      if (hospitalId) {
+        query = query.eq('hospital_id', hospitalId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -132,19 +146,25 @@ export function useQueue(options: UseQueueOptions = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [patientId, autoRefresh]);
+  }, [patientId, hospitalId, autoRefresh]);
 
-  // Call next patient
+  // Call next patient (from same hospital)
   const callNext = async () => {
     try {
-      // Get the first waiting token
-      const { data: nextToken, error: fetchError } = await supabase
+      // Get the first waiting token (from same hospital)
+      let query = supabase
         .from('tokens')
         .select('*')
         .eq('status', 'Waiting')
         .order('queue_position', { ascending: true })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      // Filter by hospital if provided
+      if (hospitalId) {
+        query = query.eq('hospital_id', hospitalId);
+      }
+
+      const { data: nextToken, error: fetchError } = await query.single();
 
       if (fetchError) throw fetchError;
       if (!nextToken) throw new Error('No patients waiting');

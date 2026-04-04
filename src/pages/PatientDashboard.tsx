@@ -26,6 +26,7 @@ const PatientDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [patientDbId, setPatientDbId] = useState<string | null>(null);
+  const [patientHospitalId, setPatientHospitalId] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [creatingToken, setCreatingToken] = useState(false);
@@ -64,22 +65,24 @@ const PatientDashboard = () => {
 
       setPatientEmail(session.user.email || '');
 
-      // Try to fetch patient record
+      // Try to fetch patient record with hospital_id
       const { data: patient, error } = await supabase
         .from('patients')
-        .select('id, patient_id, full_name')
+        .select('id, patient_id, full_name, hospital_id')
         .eq('user_id', session.user.id)
         .single();
 
       console.log('📋 Registration Check:', { 
         hasPatient: !!patient, 
         error: error?.code,
-        userId: session.user.id 
+        userId: session.user.id,
+        hospitalId: patient?.hospital_id 
       });
 
       if (patient) {
         setIsRegistered(true);
         setPatientDbId(patient.id);
+        setPatientHospitalId(patient.hospital_id);
       } else {
         setIsRegistered(false);
       }
@@ -88,7 +91,7 @@ const PatientDashboard = () => {
     checkRegistration();
   }, [navigate]);
 
-  // Use queue hook with real-time updates
+  // Use queue hook with real-time updates and hospital filtering
   const {
     currentToken,
     activeToken,
@@ -99,6 +102,7 @@ const PatientDashboard = () => {
     refresh,
   } = useQueue({
     patientId: patientDbId || undefined,
+    hospitalId: patientHospitalId || undefined,
     autoRefresh: true,
   });
 
