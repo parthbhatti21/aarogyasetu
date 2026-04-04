@@ -43,6 +43,9 @@ const AdminDashboard = () => {
   
   // Get user_id from Supabase session for hospital filtering
   const [adminUserId, setAdminUserId] = useState<string | undefined>();
+  
+  // Hospital filter state - declare BEFORE hook usage
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -82,9 +85,6 @@ const AdminDashboard = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  
-  // Hospital filter
-  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
 
   const DOCTOR_SPECIALTIES = [
     { value: 'general', label: 'General Practice' },
