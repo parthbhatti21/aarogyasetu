@@ -55,19 +55,36 @@ export function HospitalSelector({
       .filter(Boolean)
       .sort();
     setAvailableStates(states);
+    if (states.length > 0) {
+      console.log('📍 Available states from database:', states);
+    }
   }, [hospitals]);
 
   // Auto-select state when location is detected AND hospitals are loaded
   useEffect(() => {
-    if (detectedState && hospitals.length > 0 && !loadingHospitals) {
-      setSelectedState(detectedState);
+    if (detectedState && hospitals.length > 0 && !loadingHospitals && availableStates.length > 0) {
+      // Try exact match first (case-insensitive)
+      const exactMatch = availableStates.find(s => 
+        s.toLowerCase().trim() === detectedState.toLowerCase().trim()
+      );
+      
+      if (exactMatch) {
+        console.log('🎯 Auto-selecting state:', exactMatch, '(matched detected state:', detectedState + ')');
+        setSelectedState(exactMatch);
+      } else {
+        console.warn(`⚠️ No state match found. Detected: "${detectedState}", Available:`, availableStates);
+      }
     }
-  }, [detectedState, hospitals.length, loadingHospitals]);
+  }, [detectedState, hospitals, loadingHospitals, availableStates]);
 
   // Filter hospitals by selected state
   useEffect(() => {
     if (selectedState) {
-      const filtered = hospitals.filter(h => h.state === selectedState);
+      const filtered = hospitals.filter(h => 
+        h.state?.toLowerCase().trim() === selectedState.toLowerCase().trim()
+      );
+      
+      console.log(`🏥 Filtering hospitals for state: "${selectedState}" -> Found: ${filtered.length}`);
       
       // Sort by district if we have detected district
       if (detectedDistrict) {
@@ -180,7 +197,7 @@ export function HospitalSelector({
                 {detectedState ? 'Change State' : 'Select Your State'}
               </Label>
               <Select 
-                value={selectedState} 
+                value={selectedState || ''} 
                 onValueChange={setSelectedState}
                 disabled={loadingHospitals}
               >

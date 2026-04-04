@@ -75,12 +75,38 @@ const StaffLoginForm = ({ role, onBack }: StaffLoginFormProps) => {
         throw new Error(error?.message || 'Invalid credentials');
       }
 
-      const { data: staffProfile, error: profileError } = await supabase
-        .from('staff_profiles')
-        .select('display_name, role')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
+      // Check staff_profiles (for doctor, senior_doctor, admin, etc.)
+      let staffProfile = null;
+      let profileError = null;
+
+      if (role === 'registration_desk') {
+        // For registration desk, check registration_staff_profiles
+        const { data: regStaffProfile, error: regProfileError } = await supabase
+          .from('registration_staff_profiles')
+          .select('full_name, role')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (regStaffProfile) {
+          staffProfile = {
+            ...regStaffProfile,
+            display_name: regStaffProfile.full_name,
+          };
+        }
+        profileError = regProfileError;
+      } else {
+        // For other roles, check staff_profiles
+        const { data: stProfile, error: stProfileError } = await supabase
+          .from('staff_profiles')
+          .select('display_name, role')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        staffProfile = stProfile;
+        profileError = stProfileError;
+      }
 
       if (profileError) {
         throw profileError;
@@ -90,7 +116,13 @@ const StaffLoginForm = ({ role, onBack }: StaffLoginFormProps) => {
         throw new Error('No active staff profile found for this account.');
       }
 
-      if (staffProfile.role !== role) {
+      // For registration desk, check if role starts with 'registration_desk'
+      // (allows registration_desk_operator, registration_desk_supervisor, etc.)
+      const roleMatches = role === 'registration_desk' 
+        ? staffProfile.role.startsWith('registration_desk')
+        : staffProfile.role === role;
+
+      if (!roleMatches) {
         throw new Error(`This account is assigned to "${staffProfile.role}". Please select the correct role.`);
       }
 

@@ -40,7 +40,7 @@ export async function createRegistrationStaff(input: CreateRegistrationStaffInpu
       }
     );
 
-    if (signUpError || !createdUser) {
+    if (signUpError || !createdUser?.id) {
       throw new Error(signUpError?.message || 'Failed to create user account');
     }
 
@@ -64,8 +64,9 @@ export async function createRegistrationStaff(input: CreateRegistrationStaffInpu
       .single();
 
     if (profileError) throw profileError;
+    if (!staffProfile) throw new Error('Failed to create staff profile');
 
-    return profileProfile as RegistrationStaffProfile;
+    return staffProfile as RegistrationStaffProfile;
   } catch (error) {
     console.error('Error creating registration staff:', error);
     throw error;

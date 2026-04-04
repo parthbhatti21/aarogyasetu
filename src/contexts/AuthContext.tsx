@@ -107,6 +107,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resolveUserAuthProfile = async (supabaseUser: User): Promise<{ role: UserRole; user: AuthState['user'] }> => {
+    // Check registration_staff_profiles first (registration desk staff)
+    const { data: regStaffProfile } = await supabase
+      .from('registration_staff_profiles')
+      .select('full_name, role')
+      .eq('user_id', supabaseUser.id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (regStaffProfile?.role) {
+      return {
+        role: 'registration_desk' as UserRole,
+        user: {
+          name: regStaffProfile.full_name || supabaseUser.email?.split('@')[0] || 'Staff',
+          email: supabaseUser.email,
+        },
+      };
+    }
+
+    // Check staff_profiles (doctor, admin, senior_doctor, etc.)
     const { data: staffProfile } = await supabase
       .from('staff_profiles')
       .select('display_name, role')
@@ -124,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     }
 
+    // Check patients
     const { data: patient } = await supabase
       .from('patients')
       .select('full_name, patient_id, email, phone')

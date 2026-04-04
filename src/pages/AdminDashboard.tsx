@@ -120,7 +120,7 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('staff_profiles')
-        .select('id, user_id, display_name, role, specialty, hospital_id, hospital_name, is_active, created_at')
+        .select('id, user_id, display_name, role, specialty, hospital_id, is_active, created_at')
         .in('role', ['doctor', 'senior_doctor'])
         .order('created_at', { ascending: false });
       
@@ -219,7 +219,6 @@ const AdminDashboard = () => {
         .update({ 
           specialty: doctorSpecialty,
           hospital_id: doctorHospital.id,
-          hospital_name: doctorHospital.hospital_name,
         })
         .eq('user_id', createdUser.id);
 

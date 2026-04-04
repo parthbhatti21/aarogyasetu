@@ -167,9 +167,22 @@ const PatientOTPForm = ({ onBack }: PatientOTPFormProps) => {
         throw new Error('No patient account found for this email. Please sign up first.');
       }
 
-      // Store selected hospital in session storage for later use during token creation
+      // Store selected hospital in session storage and database
       sessionStorage.setItem('selected_hospital_id', selectedHospital.id);
       sessionStorage.setItem('selected_hospital_name', selectedHospital.hospital_name);
+      
+      // Update patient record with selected hospital
+      if (patientProfile && patientProfile.id) {
+        const { error: updateError } = await supabase
+          .from('patients')
+          .update({ hospital_id: selectedHospital.id })
+          .eq('id', patientProfile.id);
+
+        if (updateError) {
+          console.warn('Warning: Could not update patient hospital_id:', updateError);
+          // Continue anyway - session storage will still work for this session
+        }
+      }
 
       login('patient', {
         name: patientProfile.full_name,
