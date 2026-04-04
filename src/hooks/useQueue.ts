@@ -120,6 +120,15 @@ export function useQueue(options: UseQueueOptions = {}) {
 
   // Subscribe to real-time changes
   useEffect(() => {
+    // Only start fetching when we have the required data
+    // For patients: need patientId AND hospitalId
+    // For doctors: just need to fetch
+    if (patientId && !hospitalId) {
+      // Patient mode but hospital not loaded yet - skip fetching
+      setLoading(false);
+      return;
+    }
+
     fetchAll();
 
     if (!autoRefresh) return;

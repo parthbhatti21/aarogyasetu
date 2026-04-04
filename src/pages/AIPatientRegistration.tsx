@@ -253,7 +253,7 @@ const AIPatientRegistration = () => {
       }
 
       // Generate hospital-specific token
-      const tokenNumber = await createTokenForPatient({
+      const tokenData = await createTokenForPatient({
         patientId: newPatient.id,
         chiefComplaint: formData.chief_complaint || 'Initial Registration',
         symptoms: formData.symptoms || [],
@@ -274,7 +274,7 @@ const AIPatientRegistration = () => {
 
       toast({
         title: 'Registration Successful!',
-        description: `Patient ID: ${patientId} | Token: ${tokenNumber}`,
+        description: `Patient ID: ${patientId} | Token: ${tokenData.token_number}`,
         duration: 5000,
       });
 

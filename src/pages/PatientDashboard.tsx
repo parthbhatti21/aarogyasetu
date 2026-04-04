@@ -26,7 +26,10 @@ const PatientDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [patientDbId, setPatientDbId] = useState<string | null>(null);
-  const [patientHospitalId, setPatientHospitalId] = useState<string | null>(null);
+  const [patientHospitalId, setPatientHospitalId] = useState<string | null>(() => {
+    // Try to get from sessionStorage first
+    return sessionStorage.getItem('patient_hospital_id');
+  });
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [creatingToken, setCreatingToken] = useState(false);
@@ -83,6 +86,10 @@ const PatientDashboard = () => {
         setIsRegistered(true);
         setPatientDbId(patient.id);
         setPatientHospitalId(patient.hospital_id);
+        // Store in sessionStorage for persistence
+        if (patient.hospital_id) {
+          sessionStorage.setItem('patient_hospital_id', patient.hospital_id);
+        }
       } else {
         setIsRegistered(false);
       }
