@@ -226,14 +226,24 @@ const PatientDashboard = () => {
                 </p>
               </div>
             </div>
-            <Button 
-              size="lg" 
-              className="bg-white text-blue-600 hover:bg-blue-50"
-              onClick={() => navigate('/patient/register')}
-            >
-              <Mic className="h-5 w-5 mr-2" />
-              Start AI Intake
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                size="lg" 
+                className="bg-white text-blue-600 hover:bg-blue-50"
+                onClick={() => navigate('/patient/register')}
+              >
+                <Mic className="h-5 w-5 mr-2" />
+                Start AI Intake
+              </Button>
+              <Button 
+                size="lg" 
+                className="bg-blue-500 hover:bg-blue-400 text-white"
+                onClick={() => navigate('/patient/medical-form')}
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                AI Form Filler
+              </Button>
+            </div>
           </div>
         )}
 

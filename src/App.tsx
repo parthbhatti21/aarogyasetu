@@ -15,6 +15,7 @@ import PatientDashboard from "./pages/PatientDashboard";
 import MedicalStoreAdminDashboard from "./pages/MedicalStoreAdminDashboard";
 import MedicalStoreSalesDashboard from "./pages/MedicalStoreSalesDashboard";
 import AIPatientRegistration from "./pages/AIPatientRegistration";
+import { AIFormFillerFullWindow } from "./components/patient/AIFormFillerFullWindow";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/patient/register" element={<AIPatientRegistration />} />
+            <Route path="/patient/medical-form" element={<AIFormFillerFullWindow />} />
             <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/doctor" element={<ProtectedRoute roles={['doctor']}><DoctorDashboard /></ProtectedRoute>} />
             <Route path="/senior-doctor" element={<ProtectedRoute roles={['senior_doctor']}><DoctorDashboard /></ProtectedRoute>} />
