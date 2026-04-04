@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@/types/auth";
 import { AccessibilityWidget } from "@/components/accessibility/AccessibilityWidget";
+import { MainLayout } from "@/components/layout/MainLayout";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
@@ -20,7 +21,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ roles, children }: { roles: UserRole[]; children: ReactNode }) => {
+const ProtectedRoute = ({ roles, children, title }: { roles: UserRole[]; children: ReactNode; title?: string }) => {
   const { loading, isAuthenticated, role } = useAuth();
 
   if (loading) {
@@ -35,7 +36,7 @@ const ProtectedRoute = ({ roles, children }: { roles: UserRole[]; children: Reac
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <MainLayout title={title}>{children}</MainLayout>;
 };
 
 const App = () => (
