@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
-import { AITokenIntakeChat, type IntakePreview } from '@/components/patient/AITokenIntakeChat';
 import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
 import { NotificationsPanel } from '@/components/patient/NotificationsPanel';
 import { useQueue } from '@/hooks/useQueue';
@@ -13,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/utils/supabase';
 import { autoAssignDoctor } from '@/utils/doctorAssignment';
 import { createTokenForPatient } from '@/services/tokenService';
-import { LogOut, Ticket, FileText, Bell, Pill, Sparkles, Mic, Wand2 } from 'lucide-react';
+import { LogOut, Ticket, FileText, Bell, Pill, Sparkles, Mic } from 'lucide-react';
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
@@ -28,12 +27,11 @@ const PatientDashboard = () => {
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [creatingToken, setCreatingToken] = useState(false);
   const [manualChiefComplaint, setManualChiefComplaint] = useState('general');
-  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [aiReasonPreview, setAiReasonPreview] = useState<string | null>(null);
   const [aiSymptomsPreview, setAiSymptomsPreview] = useState<string[]>([]);
   const [aiIntakeReady, setAiIntakeReady] = useState(false);
 
-  const handleIntakePreview = useCallback((preview: IntakePreview) => {
+  const handleIntakePreview = useCallback((preview: any) => {
     setAiReasonPreview(preview.chiefComplaint.trim() || null);
     setAiSymptomsPreview(preview.symptoms);
     setAiIntakeReady(preview.ready);
@@ -307,44 +305,8 @@ const PatientDashboard = () => {
                 <Ticket className="h-4 w-4 mr-2" />
                 Get Token
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setAiChatOpen(true)}
-                disabled={creatingToken || !isRegistered || !!currentToken || !patientDbId}
-              >
-                <Wand2 className="h-4 w-4 mr-2" />
-                AI Token Generator
-              </Button>
               </div>
             </div>
-
-            {patientDbId && (
-              <AITokenIntakeChat
-                open={aiChatOpen}
-                onOpenChange={setAiChatOpen}
-                patientId={patientDbId}
-                createToken={createTokenHandler}
-                onPreviewChange={handleIntakePreview}
-                onComplete={async (tokenNumber) => {
-                  setAiReasonPreview(null);
-                  setAiSymptomsPreview([]);
-                  setAiIntakeReady(false);
-                  await refresh();
-                  toast({
-                    title: 'AI token generated',
-                    description: `Your token number is ${tokenNumber}`,
-                  });
-                }}
-                onError={(message) => {
-                  toast({
-                    title: 'AI token failed',
-                    description: message,
-                    variant: 'destructive',
-                  });
-                }}
-              />
-            )}
-
             <VirtualWaitingRoom
               currentToken={currentToken}
               activeToken={activeToken}
