@@ -18,6 +18,14 @@ export interface PatientMedicalInfo {
   allergies?: string;
   current_medications?: string;
   source: 'manual' | 'ai'; // Track which method was used
+  /** Set from patient-selected hospital (session); required for token queue linkage */
+  hospital_id?: string | null;
+}
+
+function phoneVariants(digits10: string): string[] {
+  const d = digits10.replace(/\D/g, '').slice(-10);
+  if (d.length !== 10) return [digits10.trim()];
+  return [d, `+91${d}`, `91${d}`];
 }
 
 /**
@@ -29,54 +37,76 @@ export async function savePatientMedicalInfo(
   userId: string
 ): Promise<any> {
   try {
-    // First, find the patient by phone number or user_id
-    const { data: existingPatient, error: fetchError } = await supabase
+    const digits = medicalInfo.phone.replace(/\D/g, '').slice(-10);
+    const phoneStored = digits.length === 10 ? `+91${digits}` : medicalInfo.phone.trim();
+
+    // 1) Logged-in patient's row (OTP signup + hospital step) — avoids phone-format 406 / duplicates
+    const { data: byUser, error: byUserErr } = await supabase
       .from('patients')
       .select('id, patient_id, full_name, hospital_id')
-      .eq('phone', medicalInfo.phone)
-      .single();
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    if (byUserErr) throw byUserErr;
+
+    let existingPatient = byUser;
+
+    // 2) Same phone, other formats (legacy / desk vs portal)
+    if (!existingPatient && digits.length === 10) {
+      for (const variant of phoneVariants(digits)) {
+        const { data: row, error: pe } = await supabase
+          .from('patients')
+          .select('id, patient_id, full_name, hospital_id, user_id')
+          .eq('phone', variant)
+          .maybeSingle();
+        if (pe && pe.code !== 'PGRST116') throw pe;
+        if (row?.user_id === userId) {
+          existingPatient = row;
+          break;
+        }
+      }
     }
 
     let patientId: string;
     let patientDbId: string;
 
     if (existingPatient) {
-      // Update existing patient with new medical info
       patientId = existingPatient.patient_id;
       patientDbId = existingPatient.id;
 
       const { error: updateError } = await supabase
         .from('patients')
         .update({
+          user_id: userId,
           full_name: medicalInfo.full_name,
+          phone: phoneStored,
+          email: medicalInfo.email || null,
           age: parseInt(medicalInfo.age) || null,
           gender: medicalInfo.gender || null,
           address: medicalInfo.address || null,
           blood_group: medicalInfo.blood_group || null,
+          hospital_id: medicalInfo.hospital_id ?? existingPatient.hospital_id ?? null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', patientDbId);
 
       if (updateError) throw updateError;
     } else {
-      // Create new patient if doesn't exist
       const newPatientId = generatePatientId();
-      
+
       const { data: newPatient, error: createError } = await supabase
         .from('patients')
         .insert({
           user_id: userId,
           patient_id: newPatientId,
           full_name: medicalInfo.full_name,
-          phone: medicalInfo.phone,
+          phone: phoneStored,
           email: medicalInfo.email || null,
           age: parseInt(medicalInfo.age) || null,
           gender: medicalInfo.gender || null,
           address: medicalInfo.address || null,
           blood_group: medicalInfo.blood_group || null,
+          hospital_id: medicalInfo.hospital_id || null,
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

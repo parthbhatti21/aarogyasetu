@@ -35,7 +35,8 @@ interface FormData {
 
 export function AIFormFillerFullWindow() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { supabaseUser, session, loading: authLoading } = useAuth();
+  const authUserId = supabaseUser?.id ?? session?.user?.id;
   const { toast } = useToast();
   const [formData, setFormData] = useState<Partial<FormData>>({
     chronic_conditions: [],
@@ -425,10 +426,18 @@ Extract and respond with this JSON format exactly (use null for missing data):
   };
 
   const handleComplete = async () => {
-    if (!user?.id) {
+    if (authLoading) {
       toast({
-        title: 'Error',
-        description: 'User not authenticated',
+        title: 'Please wait',
+        description: 'Checking your session…',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!authUserId) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please log in as a patient before completing the form.',
         variant: 'destructive',
       });
       return;
@@ -445,9 +454,10 @@ Extract and respond with this JSON format exactly (use null for missing data):
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      // Save medical information
+      const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
+
       const result = await savePatientMedicalInfo(
         {
           patient_id: '',
@@ -466,35 +476,33 @@ Extract and respond with this JSON format exactly (use null for missing data):
           chronic_conditions: (formData.chronic_conditions as string[])?.join(', ') || '',
           allergies: (formData.allergies as string[])?.join(', ') || '',
           current_medications: (formData.current_medications as string[])?.join(', ') || '',
-          source: 'ai', // Mark as AI-filled
+          source: 'ai',
+          hospital_id: selectedHospitalId || null,
         },
-        user.id
+        authUserId
       );
 
-      const patientId = result?.id;
-      if (!patientId) {
+      const patientDbId = result?.patientDbId as string | undefined;
+      if (!patientDbId) {
         throw new Error('Failed to retrieve patient ID');
       }
 
       // Get hospital ID from sessionStorage or patient record
-      const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
-      
       let hospitalId = selectedHospitalId;
       if (!hospitalId) {
         const { data: patient } = await supabase
           .from('patients')
           .select('hospital_id')
-          .eq('id', patientId)
-          .single();
-        
+          .eq('id', patientDbId)
+          .maybeSingle();
+
         hospitalId = patient?.hospital_id || null;
       }
 
-      // Generate token
       let tokenNumber = null;
       if (hospitalId) {
         const token = await createTokenForPatient({
-          patientId,
+          patientId: patientDbId,
           chiefComplaint: formData.purposeOfVisit,
           symptoms: (formData.symptoms as string[]) || [],
           visitType: 'General Consultation',
@@ -748,7 +756,7 @@ Extract and respond with this JSON format exactly (use null for missing data):
             {/* Submit Button */}
             <Button
               onClick={handleComplete}
-              disabled={isSubmitting}
+              disabled={isSubmitting || authLoading}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 mt-8"
             >
               <Check className="h-5 w-5 mr-2" />
