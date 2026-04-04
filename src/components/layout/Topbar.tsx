@@ -19,11 +19,9 @@ export const Topbar = ({ title }: TopbarProps) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
-  const [hospitals, setHospitals] = useState<Array<{ id: string; name: string }>>([]);
   const [settings, setSettings] = useState({
     full_name: '',
     phone: '',
-    hospital_id: '',
   });
 
   // Load patient data and hospitals
@@ -35,37 +33,17 @@ export const Topbar = ({ title }: TopbarProps) => {
 
   const loadSettings = async () => {
     try {
-      // Get current patient data including state
+      // Get current patient data
       const { data: patient } = await supabase
         .from('patients')
-        .select('full_name, phone, hospital_id, state')
+        .select('full_name, phone')
         .eq('user_id', user?.id)
         .single();
 
       setSettings({
         full_name: patient?.full_name || '',
         phone: patient?.phone || '',
-        hospital_id: patient?.hospital_id || '',
       });
-
-      // Fetch hospitals for the patient's state
-      if (patient?.state) {
-        const { data: hospitalData } = await supabase
-          .from('hospitals')
-          .select('id, hospital_name as name')
-          .eq('state', patient.state)
-          .order('hospital_name');
-
-        setHospitals(hospitalData || []);
-      } else {
-        // If no state, fetch all hospitals (fallback)
-        const { data: hospitalData } = await supabase
-          .from('hospitals')
-          .select('id, hospital_name as name')
-          .order('hospital_name');
-
-        setHospitals(hospitalData || []);
-      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -103,7 +81,6 @@ export const Topbar = ({ title }: TopbarProps) => {
         .update({
           full_name: settings.full_name,
           phone: settings.phone,
-          hospital_id: settings.hospital_id,
         })
         .eq('user_id', user.id);
 
@@ -226,26 +203,6 @@ export const Topbar = ({ title }: TopbarProps) => {
                     disabled={isLoadingSettings}
                     className="h-8 text-sm"
                   />
-                </div>
-
-                {/* Hospital */}
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Hospital <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                    value={settings.hospital_id}
-                    onChange={(e) => setSettings({ ...settings, hospital_id: e.target.value })}
-                    disabled={isLoadingSettings}
-                  >
-                    <option value="">Select Hospital</option>
-                    {hospitals.map(hospital => (
-                      <option key={hospital.id} value={hospital.id}>
-                        {hospital.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Buttons */}
