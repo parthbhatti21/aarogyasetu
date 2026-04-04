@@ -1,37 +1,38 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLayout } from '@/contexts/LayoutContext';
 import { Button } from '@/components/ui/button';
 import { Bell, Menu, LogOut, User, Settings } from 'lucide-react';
 import LogoImage from '@/assets/logo.jpg';
 
 interface TopbarProps {
-  onMenuClick?: () => void;
   title?: string;
 }
 
-export const Topbar = ({ onMenuClick, title }: TopbarProps) => {
+export const Topbar = ({ title }: TopbarProps) => {
   const { user, logout } = useAuth();
+  const { showMobileSidebar, setShowMobileSidebar } = useLayout();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 gap-4 z-40 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 gap-4 z-40 shadow-sm md:left-64">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
-        onClick={onMenuClick}
+        onClick={() => setShowMobileSidebar(!showMobileSidebar)}
         className="md:hidden text-foreground"
       >
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Logo and hospital name */}
+      {/* Logo and hospital name (desktop only) */}
       <div className="hidden md:flex items-center gap-2">
         <img src={LogoImage} alt="Aarogya Setu" className="h-8 w-8 rounded" />
         <div className="text-sm font-semibold text-foreground">Hospital</div>
       </div>
 
-      {/* Page title (center on desktop) */}
+      {/* Page title */}
       {title && (
         <div className="hidden lg:block flex-1">
           <h1 className="text-lg font-semibold text-foreground">{title}</h1>

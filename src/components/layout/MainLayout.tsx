@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -10,8 +9,6 @@ interface MainLayoutProps {
 }
 
 export const MainLayout = ({ children, title, hideLayout }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
   if (hideLayout) {
     return <>{children}</>;
   }
@@ -24,12 +21,9 @@ export const MainLayout = ({ children, title, hideLayout }: MainLayoutProps) => 
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <Topbar 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-          title={title}
-        />
+        <Topbar title={title} />
 
-        {/* Page content */}
+        {/* Page content - offset by topbar height */}
         <main className="flex-1 overflow-auto pt-16">
           <div className={cn(
             'w-full h-full transition-all duration-300',
