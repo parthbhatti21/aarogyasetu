@@ -35,10 +35,10 @@ export const Topbar = ({ title }: TopbarProps) => {
 
   const loadSettings = async () => {
     try {
-      // Get current patient data
+      // Get current patient data including state
       const { data: patient } = await supabase
         .from('patients')
-        .select('full_name, phone, hospital_id')
+        .select('full_name, phone, hospital_id, state')
         .eq('user_id', user?.id)
         .single();
 
@@ -48,13 +48,24 @@ export const Topbar = ({ title }: TopbarProps) => {
         hospital_id: patient?.hospital_id || '',
       });
 
-      // Fetch hospitals
-      const { data: hospitalData } = await supabase
-        .from('hospitals')
-        .select('id, name')
-        .order('name');
+      // Fetch hospitals for the patient's state
+      if (patient?.state) {
+        const { data: hospitalData } = await supabase
+          .from('hospitals')
+          .select('id, hospital_name as name')
+          .eq('state', patient.state)
+          .order('hospital_name');
 
-      setHospitals(hospitalData || []);
+        setHospitals(hospitalData || []);
+      } else {
+        // If no state, fetch all hospitals (fallback)
+        const { data: hospitalData } = await supabase
+          .from('hospitals')
+          .select('id, hospital_name as name')
+          .order('hospital_name');
+
+        setHospitals(hospitalData || []);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
