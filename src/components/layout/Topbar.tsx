@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Settings } from 'lucide-react';
 import LogoImage from '@/assets/logo.jpg';
@@ -10,6 +11,7 @@ interface TopbarProps {
 
 export const Topbar = ({ title }: TopbarProps) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
@@ -47,6 +49,10 @@ export const Topbar = ({ title }: TopbarProps) => {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start text-foreground hover:bg-muted"
+                onClick={() => {
+                  setShowUserMenu(false);
+                  navigate('/patient/settings');
+                }}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
