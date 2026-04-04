@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { LogOut, UserPlus, History, Users, Activity, Loader2, Search } from 'luc
 
 interface RegistrationStaff {
   id: string;
+  user_id: string;
   full_name: string;
   email: string;
   hospital_id: string;
@@ -204,37 +205,57 @@ const EnhancedRegistrationDashboard = () => {
       if (!staffInfo) return;
 
       const today = new Date().toISOString().split('T')[0];
+      const dayStart = `${today}T00:00:00`;
 
-      const { count: tokensToday } = await supabase
-        .from('tokens')
-        .select('*', { count: 'exact', head: true })
-        .eq('visit_date', today)
-        .eq('hospital_id', staffInfo.hospital_id);
+      const [
+        { count: tokensToday },
+        { count: waitingCount },
+        { count: newPatientsCount },
+        { data: queue, error },
+      ] = await Promise.all([
+        supabase
+          .from('tokens')
+          .select('*', { count: 'exact', head: true })
+          .eq('visit_date', today)
+          .eq('hospital_id', staffInfo.hospital_id),
+        supabase
+          .from('tokens')
+          .select('*', { count: 'exact', head: true })
+          .eq('visit_date', today)
+          .eq('hospital_id', staffInfo.hospital_id)
+          .eq('status', 'Waiting'),
+        supabase
+          .from('patients')
+          .select('id', { count: 'exact', head: true })
+          .eq('hospital_id', staffInfo.hospital_id)
+          .gte('created_at', dayStart),
+        supabase
+          .from('tokens')
+          .select('*, patients (full_name, patient_id, phone)')
+          .eq('visit_date', today)
+          .eq('hospital_id', staffInfo.hospital_id)
+          .limit(40),
+      ]);
 
-      const { count: waitingCount } = await supabase
-        .from('tokens')
-        .select('*', { count: 'exact', head: true })
-        .eq('visit_date', today)
-        .eq('hospital_id', staffInfo.hospital_id)
-        .eq('status', 'Waiting');
+      if (error) throw error;
+
+      const sorted = [...(queue || [])].sort((a, b) => {
+        const qa = a.queue_position;
+        const qb = b.queue_position;
+        if (qa != null && qb != null && qa !== qb) return qa - qb;
+        if (qa != null && qb == null) return -1;
+        if (qa == null && qb != null) return 1;
+        return String(a.token_number || '').localeCompare(String(b.token_number || ''), undefined, {
+          numeric: true,
+        });
+      });
 
       setQueueStats({
         tokensGeneratedToday: tokensToday || 0,
-        newPatientsToday: recentRegistrations.length || 0,
+        newPatientsToday: newPatientsCount || 0,
         patientsWaiting: waitingCount || 0,
       });
-
-      // Load queue
-      const { data: queue, error } = await supabase
-        .from('tokens')
-        .select('*')
-        .eq('visit_date', today)
-        .eq('hospital_id', staffInfo.hospital_id)
-        .order('token_number', { ascending: true })
-        .limit(20);
-
-      if (error) throw error;
-      setTodayQueue(queue || []);
+      setTodayQueue(sorted);
     } catch (error) {
       console.error('Error loading queue stats:', error);
     }
@@ -310,183 +331,213 @@ const EnhancedRegistrationDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
+  const statCard = (
+    label: string,
+    value: number,
+    icon: ReactNode,
+    accent: 'emerald' | 'rose' | 'amber'
+  ) => {
+    const ring =
+      accent === 'emerald'
+        ? 'border-emerald-200/70 ring-emerald-900/[0.06]'
+        : accent === 'rose'
+          ? 'border-rose-200/70 ring-rose-900/[0.06]'
+          : 'border-amber-200/70 ring-amber-900/[0.06]';
+    const iconBg =
+      accent === 'emerald'
+        ? 'bg-emerald-600'
+        : accent === 'rose'
+          ? 'bg-rose-500'
+          : 'bg-amber-500';
+    return (
+      <div
+        className={`rounded-2xl border bg-white p-5 shadow-sm ring-1 ${ring}`}
+      >
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <UserPlus className="h-6 w-6 text-primary" />
-              Registration Desk
-            </h1>
-            {staffInfo && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Operator: {staffInfo.full_name} • {staffInfo.email}
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-stone-900">{value}</p>
+          </div>
+          <div className={`rounded-xl ${iconBg} p-2.5 text-white shadow-sm`}>{icon}</div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-stone-50 via-white to-emerald-50/50">
+      <header className="border-b border-emerald-950/20 bg-emerald-950 text-emerald-50 shadow-md">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+              <UserPlus className="h-6 w-6 text-rose-200" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/90">
+                Front desk
               </p>
-            )}
+              <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">Registration</h1>
+              {staffInfo && (
+                <p className="mt-1 text-sm text-emerald-200/90">
+                  {staffInfo.full_name}
+                  <span className="text-emerald-400/80"> · </span>
+                  <span className="font-normal">{staffInfo.email}</span>
+                </p>
+              )}
+            </div>
           </div>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
+            className="shrink-0 border-0 bg-white/10 text-white hover:bg-white/20"
             onClick={() => {
               logout();
               navigate('/');
             }}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign out
           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="p-6 max-w-7xl mx-auto">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="register" className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              New Registration
+      <main className="mx-auto max-w-7xl px-5 py-8 pb-16">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+          <TabsList className="mb-8 grid h-auto w-full grid-cols-3 gap-2 rounded-2xl border border-stone-200/80 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
+            <TabsTrigger
+              value="register"
+              className="rounded-xl py-3 text-sm font-medium data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=inactive]:text-stone-600"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Register
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              Recent Patients
+            <TabsTrigger
+              value="history"
+              className="rounded-xl py-3 text-sm font-medium data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=inactive]:text-stone-600"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <History className="h-4 w-4" />
+                Patients
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="queue" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Today's Queue
+            <TabsTrigger
+              value="queue"
+              className="rounded-xl py-3 text-sm font-medium data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=inactive]:text-stone-600"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <Users className="h-4 w-4" />
+                Queue
+              </span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Registration Tab */}
-          <TabsContent value="register" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Stats */}
-              <div className="lg:col-span-1 space-y-4">
-                <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Tokens Today</span>
-                    <Activity className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="text-3xl font-bold text-blue-900">
-                    {queueStats.tokensGeneratedToday}
-                  </p>
-                </Card>
-
-                <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">New Patients</span>
-                    <UserPlus className="h-4 w-4 text-green-600" />
-                  </div>
-                  <p className="text-3xl font-bold text-green-900">
-                    {queueStats.newPatientsToday}
-                  </p>
-                </Card>
-
-                <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Waiting</span>
-                    <Users className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <p className="text-3xl font-bold text-orange-900">
-                    {queueStats.patientsWaiting}
-                  </p>
-                </Card>
+          <TabsContent value="register" className="space-y-8 focus-visible:outline-none">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="space-y-4 lg:col-span-1">
+                {statCard('Tokens today', queueStats.tokensGeneratedToday, <Activity className="h-5 w-5" />, 'emerald')}
+                {statCard('New patients', queueStats.newPatientsToday, <UserPlus className="h-5 w-5" />, 'rose')}
+                {statCard('Waiting now', queueStats.patientsWaiting, <Users className="h-5 w-5" />, 'amber')}
               </div>
-
-              {/* Registration Form */}
               <div className="lg:col-span-2">
-                <Card className="p-6 shadow-card">
-                  <RegistrationForm
-                    onSubmit={handleRegistrationSubmit}
-                    isLoading={loading}
-                    onPurposeOfVisitChange={handlePurposeOfVisitChange}
-                  />
+                <Card className="overflow-hidden rounded-2xl border-stone-200/80 bg-white shadow-md ring-1 ring-stone-900/[0.04]">
+                  <div className="border-b border-stone-100 bg-stone-50/80 px-6 py-4">
+                    <h2 className="text-sm font-semibold text-stone-900">Patient intake</h2>
+                    <p className="text-xs text-stone-500">Capture demographics and visit reason</p>
+                  </div>
+                  <div className="p-6 sm:p-8">
+                    <RegistrationForm
+                      onSubmit={handleRegistrationSubmit}
+                      isLoading={loading}
+                      onPurposeOfVisitChange={handlePurposeOfVisitChange}
+                    />
+                  </div>
                 </Card>
               </div>
             </div>
 
-            {/* Doctor Suggestion (shown during registration) */}
             {registrationData && suggestedDoctor && (
-              <Card className="p-6">
-                <DoctorSuggestionCard
-                  suggestion={suggestedDoctor}
-                  onOverride={handleDoctorOverride}
-                  disabled={loading}
-                />
+              <Card className="overflow-hidden rounded-2xl border-rose-200/50 bg-white shadow-md ring-1 ring-rose-900/[0.06]">
+                <div className="border-b border-rose-100 bg-rose-50/50 px-6 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-rose-800/80">Routing</p>
+                </div>
+                <div className="p-6">
+                  <DoctorSuggestionCard
+                    suggestion={suggestedDoctor}
+                    onOverride={handleDoctorOverride}
+                    disabled={loading}
+                  />
+                </div>
               </Card>
             )}
           </TabsContent>
 
-          {/* Recent Patients Tab */}
-          <TabsContent value="history" className="space-y-4">
-            <Card className="p-4 border-2 border-blue-200 bg-blue-50">
-              <div className="flex gap-2">
+          <TabsContent value="history" className="space-y-6 focus-visible:outline-none">
+            <Card className="overflow-hidden rounded-2xl border-stone-200/80 bg-white shadow-md ring-1 ring-stone-900/[0.04]">
+              <div className="border-b border-stone-100 bg-stone-50/80 px-6 py-4">
+                <h2 className="text-sm font-semibold text-stone-900">Lookup</h2>
+                <p className="text-xs text-stone-500">Search by registered mobile number</p>
+              </div>
+              <div className="flex flex-col gap-3 p-6 sm:flex-row">
                 <Input
-                  placeholder="Search by mobile number (10 digits)"
+                  placeholder="10-digit mobile"
                   value={searchMobile}
                   onChange={(e) => setSearchMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="flex-1"
+                  className="h-11 flex-1 rounded-xl border-stone-200 bg-stone-50/50"
                   maxLength={10}
                 />
                 <Button
                   onClick={handleSearchPatient}
                   disabled={searchLoading}
-                  className="gap-2"
+                  className="h-11 rounded-xl bg-emerald-700 px-6 hover:bg-emerald-800"
                 >
-                  {searchLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4" />
-                      Search
-                    </>
-                  )}
+                  {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                  Search
                 </Button>
               </div>
-
               {searchResults && (
-                <Card className="mt-4 p-4 bg-white border-green-200">
-                  <div className="space-y-2">
+                <div className="border-t border-stone-100 bg-emerald-50/30 px-6 py-5">
+                  <div className="rounded-xl border border-emerald-200/60 bg-white p-4 text-sm text-stone-700 shadow-sm">
                     <p>
-                      <span className="font-semibold">Name:</span> {searchResults.full_name}
+                      <span className="font-semibold text-stone-900">Name:</span> {searchResults.full_name}
                     </p>
-                    <p>
-                      <span className="font-semibold">ID:</span> {searchResults.patient_id}
+                    <p className="mt-1">
+                      <span className="font-semibold text-stone-900">ID:</span> {searchResults.patient_id}
                     </p>
-                    <p>
-                      <span className="font-semibold">Age:</span> {searchResults.age} • {searchResults.gender}
+                    <p className="mt-1">
+                      <span className="font-semibold text-stone-900">Age:</span> {searchResults.age} · {searchResults.gender}
                     </p>
-                    <p>
-                      <span className="font-semibold">Billing Type:</span>{' '}
+                    <p className="mt-1">
+                      <span className="font-semibold text-stone-900">Billing:</span>{' '}
                       {searchResults.billing_type || 'General'}
                     </p>
                   </div>
-                </Card>
+                </div>
               )}
             </Card>
 
-            {/* Recent Registrations List */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg text-foreground mb-4">Today's Registrations</h3>
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-stone-500">Today at this desk</h3>
               {recentRegistrations.length === 0 ? (
-                <Card className="p-8 text-center text-muted-foreground">
+                <Card className="rounded-2xl border-dashed border-stone-200 bg-stone-50/50 p-12 text-center text-sm text-stone-500">
                   No registrations yet today
                 </Card>
               ) : (
-                <div className="space-y-2">
-                  {recentRegistrations.map(patient => (
-                    <Card key={patient.id} className="p-4 hover:bg-muted cursor-pointer transition">
-                      <div className="flex items-center justify-between">
+                <div className="max-h-[min(60vh,480px)] space-y-3 overflow-y-auto pr-1">
+                  {recentRegistrations.map((patient) => (
+                    <Card
+                      key={patient.id}
+                      className="rounded-2xl border-stone-200/80 bg-white p-4 shadow-sm transition hover:border-emerald-200/80 hover:shadow-md"
+                    >
+                      <div className="flex items-center justify-between gap-4">
                         <div>
-                          <p className="font-semibold">{patient.full_name}</p>
-                          <p className="text-sm text-muted-foreground">{patient.patient_id}</p>
+                          <p className="font-semibold text-stone-900">{patient.full_name}</p>
+                          <p className="text-sm text-stone-500">{patient.patient_id}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-mono">{patient.phone}</p>
-                          <Badge variant="outline" className="text-xs mt-1">
+                          <p className="font-mono text-sm text-stone-600">{patient.phone}</p>
+                          <Badge variant="outline" className="mt-1 border-stone-200 text-xs font-normal text-stone-600">
                             {new Date(patient.created_at).toLocaleTimeString()}
                           </Badge>
                         </div>
@@ -498,38 +549,46 @@ const EnhancedRegistrationDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Queue Tab */}
-          <TabsContent value="queue" className="space-y-4">
-            <h3 className="font-semibold text-lg text-foreground">Today's Queue</h3>
+          <TabsContent value="queue" className="space-y-4 focus-visible:outline-none">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-stone-900">Live queue</h3>
+                <p className="text-sm text-stone-500">Today · ordered by position</p>
+              </div>
+            </div>
             {todayQueue.length === 0 ? (
-              <Card className="p-8 text-center text-muted-foreground">
-                No tokens generated yet today
+              <Card className="rounded-2xl border-dashed border-stone-200 bg-stone-50/50 p-12 text-center text-sm text-stone-500">
+                No tokens for today yet
               </Card>
             ) : (
-              <div className="grid gap-2">
+              <div className="max-h-[min(65vh,560px)] space-y-3 overflow-y-auto pr-1">
                 {todayQueue.map((token, idx) => (
-                  <Card key={token.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="text-3xl font-bold text-primary min-w-16 text-center">
-                          {token.token_number}
+                  <Card
+                    key={token.id}
+                    className="rounded-2xl border-stone-200/80 bg-white p-5 shadow-sm ring-1 ring-stone-900/[0.03]"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="min-w-[7rem] text-center">
+                          <p className="font-mono text-lg font-bold leading-tight text-emerald-800">{token.token_number}</p>
+                          <p className="mt-1 text-xs font-medium text-stone-400">
+                            Q #{token.queue_position ?? idx + 1}
+                          </p>
                         </div>
                         <div>
-                          <p className="font-semibold">{token.patients?.full_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {token.purpose_of_visit}
+                          <p className="font-semibold text-stone-900">
+                            {token.patients?.full_name ?? 'Patient'}
                           </p>
+                          <p className="text-sm text-stone-500">{token.purpose_of_visit || '—'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            {token.suggested_doctor_specialty || 'General'}
-                          </p>
-                          <Badge className="text-xs mt-1">
-                            {token.status}
-                          </Badge>
-                        </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2 sm:text-right">
+                        <p className="text-sm font-medium text-stone-700">
+                          {token.suggested_doctor_specialty || 'General'}
+                        </p>
+                        <Badge className="rounded-lg bg-emerald-700 px-2.5 py-0.5 text-xs font-medium text-white hover:bg-emerald-700">
+                          {token.status}
+                        </Badge>
                       </div>
                     </div>
                   </Card>

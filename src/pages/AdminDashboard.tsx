@@ -66,6 +66,7 @@ const AdminDashboard = () => {
     loading,
     error,
     totalPatients,
+    newPatientsToday,
     tokensToday,
     waitingOrActive,
     completedToday,
@@ -351,6 +352,8 @@ const AdminDashboard = () => {
         {/* Professional Industry-Standard Metrics Dashboard */}
         <IndustryStandardMetrics
           tokensProcessed={tokensToday}
+          newPatientsToday={newPatientsToday}
+          completedToday={completedToday}
           avgWaitTime={Math.max(5, Math.floor(Math.random() * 15) + 8)}
           patientSatisfaction={92}
           doctorEfficiency={
@@ -368,18 +371,19 @@ const AdminDashboard = () => {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-card rounded-xl shadow-card border border-border flex flex-col min-h-0 max-h-[min(72vh,580px)]">
+            <div className="p-6 pb-3 shrink-0 flex items-center justify-between border-b border-border/60">
               <h3 className="font-semibold text-foreground">Live token queue</h3>
               <span className="text-xs text-muted-foreground">{liveQueue.length} waiting or active</span>
             </div>
+            <div className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading queue…</p>
             ) : liveQueue.length === 0 ? (
               <p className="text-sm text-muted-foreground">No tokens in queue for today.</p>
             ) : (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto">
-                {liveQueue.map((t) => (
+              <div className="space-y-2">
+                {liveQueue.map((t, idx) => (
                   <div key={t.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg text-sm">
                     <div>
                       <p className="font-medium">{t.token_number}</p>
@@ -392,19 +396,23 @@ const AdminDashboard = () => {
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-medium">{t.status}</span>
-                      <p className="text-xs text-muted-foreground">Q #{t.queue_position ?? '—'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Q #{t.queue_position ?? idx + 1}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+            </div>
           </div>
 
-          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-card rounded-xl shadow-card border border-border flex flex-col min-h-0 max-h-[min(72vh,580px)]">
+            <div className="p-6 pb-3 shrink-0 border-b border-border/60">
               <h3 className="font-semibold text-foreground">Recent patient registrations</h3>
+              <p className="text-xs text-muted-foreground mt-1">Today at this hospital</p>
             </div>
-            <div className="space-y-2 max-h-[420px] overflow-y-auto">
+            <div className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto space-y-2">
               {recentPatients.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No patients yet.</p>
               ) : (
@@ -426,13 +434,14 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-card rounded-xl shadow-card border border-border flex flex-col min-h-0 max-h-[min(72vh,580px)] lg:col-span-2">
+            <div className="p-6 pb-3 shrink-0 flex items-center justify-between border-b border-border/60">
               <h3 className="font-semibold text-foreground">Doctor Management</h3>
               <Button variant="outline" size="sm" onClick={() => setShowCreateDoctor((prev) => !prev)}>
                 {showCreateDoctor ? 'Cancel' : 'Create Doctor Account'}
               </Button>
             </div>
+            <div className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto">
             {showCreateDoctor ? (
               <form className="space-y-3" onSubmit={handleCreateDoctor}>
                 <div className="space-y-2">
@@ -540,15 +549,17 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+            </div>
           </div>
 
-          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-card rounded-xl shadow-card border border-border flex flex-col min-h-0 max-h-[min(72vh,580px)] lg:col-span-2">
+            <div className="p-6 pb-3 shrink-0 flex items-center justify-between border-b border-border/60">
               <h3 className="font-semibold text-foreground">Registration Desk Management</h3>
               <Button variant="outline" size="sm" onClick={() => setShowCreateStaff((prev) => !prev)}>
                 {showCreateStaff ? 'Cancel' : 'Create Staff Account'}
               </Button>
             </div>
+            <div className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto">
             {showCreateStaff ? (
               <form className="space-y-3" onSubmit={handleCreateRegistrationStaff}>
                 <div className="space-y-2">
@@ -701,6 +712,7 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
 

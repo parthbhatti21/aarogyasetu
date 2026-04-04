@@ -1,5 +1,6 @@
 import { supabase } from '@/utils/supabase';
 import type { Patient, Token } from '@/types/database';
+import { generateHospitalToken, getQueuePosition } from '@/services/tokenService';
 
 export interface PatientRegistrationData {
   firstName: string;
@@ -47,56 +48,11 @@ export async function findPatientByMobile(mobileNumber: string): Promise<Patient
 }
 
 /**
- * Generate next token number for today (per hospital)
+ * Next token for this hospital today — same as patient self-check-in:
+ * RPC `generate_hospital_token_number` → e.g. H119-04042026-001
  */
 export async function getNextTokenNumber(hospitalId: string): Promise<string> {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Get or create token sequence for today
-    const { data: sequence, error: fetchError } = await supabase
-      .from('token_sequences')
-      .select('*')
-      .eq('hospital_id', hospitalId)
-      .eq('visit_date', today)
-      .single();
-
-    let nextNumber = 1;
-
-    if (fetchError?.code === 'PGRST116') {
-      // First token of the day - create sequence
-      const { data: newSequence, error: createError } = await supabase
-        .from('token_sequences')
-        .insert({
-          hospital_id: hospitalId,
-          visit_date: today,
-          next_sequence_number: 2,
-        })
-        .select('next_sequence_number')
-        .single();
-
-      if (createError) throw createError;
-      nextNumber = 1;
-    } else if (fetchError) {
-      throw fetchError;
-    } else if (sequence) {
-      nextNumber = sequence.next_sequence_number;
-
-      // Increment for next token
-      const { error: updateError } = await supabase
-        .from('token_sequences')
-        .update({ next_sequence_number: nextNumber + 1 })
-        .eq('hospital_id', hospitalId)
-        .eq('visit_date', today);
-
-      if (updateError) throw updateError;
-    }
-
-    return String(nextNumber).padStart(3, '0');
-  } catch (error) {
-    console.error('Error generating token number:', error);
-    throw error;
-  }
+  return generateHospitalToken(hospitalId);
 }
 
 /**
@@ -201,6 +157,7 @@ export async function createToken(
 ): Promise<Token> {
   try {
     const today = new Date().toISOString().split('T')[0];
+    const queuePosition = await getQueuePosition(hospitalId, today);
 
     const { data: token, error } = await supabase
       .from('tokens')
@@ -217,6 +174,7 @@ export async function createToken(
         hospital_id: hospitalId,
         status: 'Waiting',
         priority: 'Normal',
+        queue_position: queuePosition,
       })
       .select()
       .single();

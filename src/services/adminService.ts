@@ -44,8 +44,20 @@ export async function fetchHospitalsByState(state?: string): Promise<Hospital[]>
   return data || [];
 }
 
+function sortLiveQueueTokens(rows: TokenWithPatient[]): TokenWithPatient[] {
+  return [...rows].sort((a, b) => {
+    const qa = a.queue_position;
+    const qb = b.queue_position;
+    if (qa != null && qb != null && qa !== qb) return qa - qb;
+    if (qa != null && qb == null) return -1;
+    if (qa == null && qb != null) return 1;
+    return String(a.token_number || '').localeCompare(String(b.token_number || ''), undefined, { numeric: true });
+  });
+}
+
 export async function fetchAdminOverview(today: string, hospitalId?: string | null) {
-  // Build queries with optional hospital filtering
+  const dayStart = `${today}T00:00:00`;
+
   const buildTokenQuery = (query: any) => {
     if (hospitalId) {
       return query.eq('hospital_id', hospitalId);
@@ -53,46 +65,71 @@ export async function fetchAdminOverview(today: string, hospitalId?: string | nu
     return query;
   };
 
+  let patientsCountQuery = supabase.from('patients').select('id', { count: 'exact', head: true });
+  if (hospitalId) {
+    patientsCountQuery = patientsCountQuery.eq('hospital_id', hospitalId);
+  }
+
+  let newPatientsQuery = supabase
+    .from('patients')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', dayStart);
+  if (hospitalId) {
+    newPatientsQuery = newPatientsQuery.eq('hospital_id', hospitalId);
+  }
+
+  let recentPatientsQuery = supabase
+    .from('patients')
+    .select('id, patient_id, full_name, phone, created_at')
+    .gte('created_at', dayStart)
+    .order('created_at', { ascending: false })
+    .limit(15);
+  if (hospitalId) {
+    recentPatientsQuery = recentPatientsQuery.eq('hospital_id', hospitalId);
+  }
+
   const [
     patientsRes,
+    newPatientsRes,
     tokensTodayRes,
     waitingRes,
     completedTodayRes,
     recentPatientsRes,
     queueRes,
   ] = await Promise.all([
-    supabase.from('patients').select('id', { count: 'exact', head: true }),
+    patientsCountQuery,
+    newPatientsQuery,
     buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today)),
     buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).in('status', ['Waiting', 'Active'])),
     buildTokenQuery(supabase.from('tokens').select('id', { count: 'exact', head: true }).eq('visit_date', today).eq('status', 'Completed')),
-    supabase
-      .from('patients')
-      .select('id, patient_id, full_name, phone, created_at')
-      .order('created_at', { ascending: false })
-      .limit(10),
+    recentPatientsQuery,
     buildTokenQuery(
       supabase
         .from('tokens')
         .select('*, patients (id, full_name, patient_id, phone)')
         .eq('visit_date', today)
         .in('status', ['Waiting', 'Active'])
-    ).order('queue_position', { ascending: true }),
+    ),
   ]);
 
   if (patientsRes.error) throw patientsRes.error;
+  if (newPatientsRes.error) throw newPatientsRes.error;
   if (tokensTodayRes.error) throw tokensTodayRes.error;
   if (waitingRes.error) throw waitingRes.error;
   if (completedTodayRes.error) throw completedTodayRes.error;
   if (recentPatientsRes.error) throw recentPatientsRes.error;
   if (queueRes.error) throw queueRes.error;
 
+  const liveQueue = sortLiveQueueTokens((queueRes.data || []) as TokenWithPatient[]);
+
   return {
     totalPatients: patientsRes.count ?? 0,
+    newPatientsToday: newPatientsRes.count ?? 0,
     tokensToday: tokensTodayRes.count ?? 0,
     waitingOrActive: waitingRes.count ?? 0,
     completedToday: completedTodayRes.count ?? 0,
     recentPatients: recentPatientsRes.data || [],
-    liveQueue: (queueRes.data || []) as TokenWithPatient[],
+    liveQueue,
   };
 }
 

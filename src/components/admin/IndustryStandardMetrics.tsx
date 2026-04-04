@@ -22,12 +22,16 @@ interface DoctorStats {
 
 export const IndustryStandardMetrics = ({
   tokensProcessed,
+  newPatientsToday = 0,
+  completedToday = 0,
   avgWaitTime,
   patientSatisfaction,
   doctorStats = [],
   systemMetrics = {},
 }: {
   tokensProcessed: number;
+  newPatientsToday?: number;
+  completedToday?: number;
   avgWaitTime: number;
   patientSatisfaction: number;
   doctorStats?: DoctorStats[];
@@ -36,7 +40,7 @@ export const IndustryStandardMetrics = ({
   return (
     <div className="space-y-6">
       {/* Key Metrics Grid - Industry Standard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {/* Average Wait Time */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-start justify-between">
@@ -71,43 +75,60 @@ export const IndustryStandardMetrics = ({
           </div>
         </div>
 
-        {/* Daily Registrations */}
+        {/* Tokens issued today */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Registrations Today</p>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tokens today</p>
               <div className="mt-2 flex items-baseline gap-2">
                 <p className="text-2xl font-bold text-slate-900">{tokensProcessed}</p>
-                <p className="text-sm text-slate-600">patients</p>
+                <p className="text-sm text-slate-600">queue</p>
               </div>
             </div>
             <Users className="h-5 w-5 text-purple-500 opacity-40" />
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100">
-            <p className="text-xs text-slate-600">Daily avg: <span className="font-semibold">85</span></p>
+            <p className="text-xs text-slate-600">Check-ins &amp; desk</p>
           </div>
         </div>
 
-        {/* Completed Visits */}
+        {/* New patient records created today */}
         <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Completed Today</p>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">New patients</p>
               <div className="mt-2 flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-slate-900">{Math.floor(tokensProcessed * 0.7)}</p>
+                <p className="text-2xl font-bold text-slate-900">{newPatientsToday}</p>
+                <p className="text-sm text-slate-600">records</p>
+              </div>
+            </div>
+            <Users className="h-5 w-5 text-rose-500 opacity-40" />
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <p className="text-xs text-slate-600">Created today (this hospital)</p>
+          </div>
+        </div>
+
+        {/* Completed visits today */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Completed today</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-slate-900">{completedToday}</p>
                 <p className="text-sm text-slate-600">visits</p>
               </div>
             </div>
             <CheckCircle className="h-5 w-5 text-emerald-500 opacity-40" />
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100">
-            <p className="text-xs text-slate-600">Completion: <span className="font-semibold">70%</span></p>
+            <p className="text-xs text-slate-600">Finished consultations</p>
           </div>
         </div>
       </div>
 
       {/* Doctor Workload - Professional Table */}
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+      {/* <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <h3 className="text-sm font-semibold text-slate-900">Doctor Workload Summary</h3>
           <p className="text-xs text-slate-600 mt-1">Current day activity</p>
@@ -164,7 +185,7 @@ export const IndustryStandardMetrics = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
 
       {/* System Performance Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -233,8 +254,8 @@ export const IndustryStandardMetrics = ({
           <div className="flex gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-green-900">92 patients processed today</p>
-              <p className="text-xs text-green-700 mt-0.5">On pace for daily target</p>
+              <p className="font-medium text-green-900">{tokensProcessed} tokens issued today</p>
+              <p className="text-xs text-green-700 mt-0.5">{newPatientsToday} new patient records</p>
             </div>
           </div>
         </div>

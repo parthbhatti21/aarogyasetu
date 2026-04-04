@@ -13,6 +13,7 @@ export function useAdminDashboard(adminUserId?: string, selectedHospitalId?: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPatients, setTotalPatients] = useState(0);
+  const [newPatientsToday, setNewPatientsToday] = useState(0);
   const [tokensToday, setTokensToday] = useState(0);
   const [waitingOrActive, setWaitingOrActive] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
@@ -51,6 +52,7 @@ export function useAdminDashboard(adminUserId?: string, selectedHospitalId?: str
       const filterHospitalId = selectedHospitalId || hospitalId;
       const overview = await fetchAdminOverview(d, filterHospitalId);
       setTotalPatients(overview.totalPatients);
+      setNewPatientsToday(overview.newPatientsToday);
       setTokensToday(overview.tokensToday);
       setWaitingOrActive(overview.waitingOrActive);
       setCompletedToday(overview.completedToday);
@@ -89,6 +91,7 @@ export function useAdminDashboard(adminUserId?: string, selectedHospitalId?: str
     loading,
     error,
     totalPatients,
+    newPatientsToday,
     tokensToday,
     waitingOrActive,
     completedToday,
