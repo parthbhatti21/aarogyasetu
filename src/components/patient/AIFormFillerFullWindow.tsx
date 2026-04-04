@@ -10,21 +10,22 @@ import { useSpeechRecognition, useSpeechSynthesis } from '@/hooks/useSpeech';
 import { Mic, MicOff, Volume2, VolumeX, Send, ArrowLeft, Check } from 'lucide-react';
 
 interface FormData {
-  full_name: string;
+  // Personal Details (matching registration desk)
+  firstName: string;
+  surname: string;
+  mobileNumber: string;
   age: string;
   gender: string;
-  phone: string;
-  email: string;
+  purposeOfVisit: string;
   address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  blood_group: string;
+  occupation: string;
+  income: string;
+  billingType: string;
+  
+  // Medical Information
   chronic_conditions: string[];
   allergies: string[];
   current_medications: string[];
-  chief_complaint: string;
-  symptoms: string[];
 }
 
 export function AIFormFillerFullWindow() {
@@ -64,7 +65,17 @@ export function AIFormFillerFullWindow() {
 
       const greeting = `Hello! I'm your AI Health Assistant. I'll help you fill out your medical information through a conversation. Let's start with some basic details.
 
-What's your full name?`;
+Please provide:
+1. Your first name
+2. Your surname
+3. Your mobile number (10 digits)
+4. Your age
+5. Your gender (Male/Female/Other)
+6. Purpose of your visit (why are you here today?)
+
+After that, I'll ask about your address, occupation, income, billing type, and then medical history.
+
+Let's start! What's your first name?`;
 
       setMessages([{ role: 'assistant', content: greeting }]);
       speak(greeting, 'en-IN');
@@ -107,25 +118,23 @@ What's your full name?`;
   };
 
   const extractWithAI = async (userMessages: string): Promise<Partial<FormData> | null> => {
-    const extractionPrompt = `You are a data extraction assistant. Extract medical information from this patient conversation and respond with ONLY valid JSON (no markdown, no explanation).
+    const extractionPrompt = `You are a data extraction assistant. Extract patient registration information from this patient conversation and respond with ONLY valid JSON (no markdown, no explanation).
 
 Patient conversation:
 ${userMessages}
 
 Extract and respond with this JSON format exactly (use null for missing data):
 {
-  "full_name": "patient name or null",
+  "firstName": "first name or null",
+  "surname": "last name or null",
+  "mobileNumber": "10-digit phone or null",
   "age": "age as number or null",
   "gender": "Male/Female/Other or null",
-  "phone": "10-digit phone or null",
-  "email": "email or null",
-  "address": "full street address or null",
-  "city": "city name or null",
-  "state": "state name or null",
-  "pincode": "6-digit postal code or null",
-  "blood_group": "blood group or null",
-  "chief_complaint": "main reason for visit or null",
-  "symptoms": ["list", "of", "symptoms"],
+  "purposeOfVisit": "reason for visit or null",
+  "address": "full address or null",
+  "occupation": "occupation or null",
+  "income": "income or null",
+  "billingType": "billing type or null",
   "chronic_conditions": ["list", "of", "conditions"],
   "allergies": ["list", "of", "allergies"],
   "current_medications": ["list", "of", "medications"]
@@ -164,18 +173,16 @@ Extract and respond with this JSON format exactly (use null for missing data):
       const extracted = JSON.parse(jsonMatch[0]);
       
       return {
-        full_name: extracted.full_name || undefined,
+        firstName: extracted.firstName || undefined,
+        surname: extracted.surname || undefined,
+        mobileNumber: extracted.mobileNumber || undefined,
         age: extracted.age ? String(extracted.age) : undefined,
         gender: extracted.gender || undefined,
-        phone: extracted.phone || undefined,
-        email: extracted.email || undefined,
+        purposeOfVisit: extracted.purposeOfVisit || undefined,
         address: extracted.address || undefined,
-        city: extracted.city || undefined,
-        state: extracted.state || undefined,
-        pincode: extracted.pincode || undefined,
-        blood_group: extracted.blood_group || undefined,
-        chief_complaint: extracted.chief_complaint || undefined,
-        symptoms: Array.isArray(extracted.symptoms) ? extracted.symptoms.filter(s => s) : [],
+        occupation: extracted.occupation || undefined,
+        income: extracted.income || undefined,
+        billingType: extracted.billingType || undefined,
         chronic_conditions: Array.isArray(extracted.chronic_conditions) ? extracted.chronic_conditions.filter(s => s) : [],
         allergies: Array.isArray(extracted.allergies) ? extracted.allergies.filter(s => s) : [],
         current_medications: Array.isArray(extracted.current_medications) ? extracted.current_medications.filter(s => s) : [],
@@ -193,41 +200,53 @@ Extract and respond with this JSON format exactly (use null for missing data):
       chronic_conditions: [],
       allergies: [],
       current_medications: [],
-      symptoms: [],
     };
 
-    // Extract name - multiple patterns
-    let nameExtracted = false;
-    const namePatterns = [
-      /(?:name is|i am|i'm|called|my name|this is)\s+([a-zA-Z\s]+?)(?:\.|,|and|$)/i,
-      /^([a-zA-Z]+)\s*(?:\.|,|here|$)/im, // First word alone (like "Parth")
-      /parth|sharma|(?:[A-Z][a-z]+\s+[A-Z][a-z]+)/i, // Known names or capitalized phrases
+    // Extract first name - multiple patterns
+    let firstNameExtracted = false;
+    const firstNamePatterns = [
+      /(?:first name|my first name|name is)\s+([a-zA-Z]+)/i,
+      /^([a-zA-Z]+)\s+(?:[a-zA-Z]+)?/i, // First word
     ];
     
-    for (const pattern of namePatterns) {
+    for (const pattern of firstNamePatterns) {
       const match = userMessages.match(pattern);
       if (match && match[1]) {
         const name = match[1].trim();
-        // Validate it's actually a name (not too short, contains letters)
-        if (name.length > 2 && /[a-zA-Z]/.test(name)) {
-          extracted.full_name = name;
-          nameExtracted = true;
+        if (name.length > 1 && /[a-zA-Z]/.test(name)) {
+          extracted.firstName = name;
+          firstNameExtracted = true;
           break;
         }
       }
     }
+
+    // Extract surname - patterns for last name
+    const surnamePatterns = [
+      /(?:surname|last name|family name)\s+(?:is)?\s+([a-zA-Z]+)/i,
+      /(?:my last name|surname is)\s+([a-zA-Z]+)/i,
+    ];
     
-    // If still no name, try extracting any capitalized word at the start
-    if (!nameExtracted) {
-      const firstCapitalMatch = userMessages.match(/\b([A-Z][a-z]+)\b/);
-      if (firstCapitalMatch) extracted.full_name = firstCapitalMatch[1];
+    for (const pattern of surnamePatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        const surname = match[1].trim();
+        if (surname.length > 1) {
+          extracted.surname = surname;
+          break;
+        }
+      }
     }
 
+    // Extract mobile number (10 digits)
+    const mobileMatch = userMessages.match(/(?:mobile|phone|number)\s+(?:is|number:)?\s*(\d{10})/);
+    if (mobileMatch) extracted.mobileNumber = mobileMatch[1];
+
     // Extract age
-    const ageMatch = userMessages.match(/(\d{1,3})\s*(?:years?|yr)?/);
+    const ageMatch = userMessages.match(/(?:age|years old|i am|i'm)\s+(\d{1,3})/);
     if (ageMatch) extracted.age = ageMatch[1];
 
-    // Extract gender - handle typos like msle → male
+    // Extract gender - handle typos
     const genderText = userMessages.toLowerCase();
     if (/male|m[a-z]*le|man|boy|msle/.test(genderText)) {
       extracted.gender = 'Male';
@@ -237,19 +256,27 @@ Extract and respond with this JSON format exactly (use null for missing data):
       extracted.gender = 'Other';
     }
 
-    // Extract phone (10 digits)
-    const phoneMatch = userMessages.match(/(\d{10})/);
-    if (phoneMatch) extracted.phone = phoneMatch[1];
+    // Extract purpose of visit
+    const purposePatterns = [
+      /(?:reason|visit|consultation|chief complaint|purpose)\s+(?:is|for)?\s+([a-zA-Z0-9\s]+?)(?:\.|,|and|$)/i,
+      /(?:i )?(?:came|coming|here|visiting)\s+(?:for)?\s+([a-zA-Z\s]+?)(?:\.|,|$)/i,
+    ];
+    
+    for (const pattern of purposePatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        const purpose = match[1].trim();
+        if (purpose.length > 2) {
+          extracted.purposeOfVisit = purpose;
+          break;
+        }
+      }
+    }
 
-    // Extract email
-    const emailMatch = userMessages.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    if (emailMatch) extracted.email = emailMatch[1];
-
-    // Extract address - look for all words after "address" or "at" or any long text block
+    // Extract address
     const addressPatterns = [
-      /address[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|at|near|next|\$)/i,
-      /apt|apartment|house|flat|plot[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|at|near|\$)/i,
-      /(\d+[a-zA-Z0-9\s,.-]+?)(?:vadodara|city|state|near|next)/i,
+      /address[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|mobile|phone|\$)/i,
+      /(?:apt|apartment|flat|house|plot|street)[:\s]+([a-zA-Z0-9\s,.-]+?)(?:\.|,|city|$)/i,
     ];
     for (const pattern of addressPatterns) {
       const match = userMessages.match(pattern);
@@ -259,144 +286,74 @@ Extract and respond with this JSON format exactly (use null for missing data):
       }
     }
 
-    // If still no address, try to capture any text block that mentions apartment/street patterns
-    if (!extracted.address) {
-      const textBlocks = userMessages.split(/\./);
-      for (const block of textBlocks) {
-        if (/apartment|flat|house|plot|street|road|lane/i.test(block) && block.length > 10) {
-          extracted.address = block.trim().replace(/\s+/g, ' ');
-          break;
-        }
+    // Extract occupation
+    const occupationPatterns = [
+      /(?:occupation|job|work|profession)\s+(?:is)?\s+([a-zA-Z\s]+?)(?:\.|,|$)/i,
+    ];
+    for (const pattern of occupationPatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        extracted.occupation = match[1].trim();
+        break;
       }
     }
 
-    // Extract city - Indian cities and common patterns
-    const cities = [
-      'vadodara', 'ahmedabad', 'surat', 'rajkot',
-      'mumbai', 'pune', 'nagpur', 'nashik',
-      'delhi', 'delhi ncr', 'gurgaon', 'noida',
-      'bangalore', 'hyderabad', 'chennai', 'kolkata'
+    // Extract income
+    const incomePatterns = [
+      /(?:income|salary|earnings?)\s+(?:is)?\s+(?:rupees?|rs\.?)?[\s]*([0-9,]+)/i,
+      /(?:income|salary)\s+(?:bracket|range|category)\s+(?:is)?\s+([a-zA-Z0-9\s-]+?)(?:\.|,|$)/i,
     ];
-    const cityPattern = new RegExp(`\\b(${cities.join('|')})\\b`, 'i');
-    const cityMatch = userMessages.match(cityPattern);
-    if (cityMatch) extracted.city = cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1).toLowerCase();
-
-    // Extract state - Indian states
-    const states = [
-      'gujarat', 'maharashtra', 'karnataka', 'telangana', 'delhi', 
-      'punjab', 'tamil nadu', 'uttar pradesh', 'west bengal', 
-      'rajasthan', 'bihar', 'haryana', 'goa', 'kerala', 'madhya pradesh'
-    ];
-    const statePattern = new RegExp(`\\b(${states.join('|')})\\b`, 'i');
-    const stateMatch = userMessages.match(statePattern);
-    if (stateMatch) extracted.state = stateMatch[1].charAt(0).toUpperCase() + stateMatch[1].slice(1).toLowerCase();
-
-    // Extract pincode (6 digits for India) - be more specific
-    const pincodeMatches = userMessages.match(/\b(\d{6})\b/g);
-    if (pincodeMatches && pincodeMatches.length > 0) {
-      // Use the first 6-digit number found (usually it's near the city)
-      extracted.pincode = pincodeMatches[0];
+    for (const pattern of incomePatterns) {
+      const match = userMessages.match(pattern);
+      if (match && match[1]) {
+        extracted.income = match[1].trim();
+        break;
+      }
     }
 
-    // Extract blood group
-    const bloodGroupMatch = userMessages.match(/\b(a\+|a-|b\+|b-|ab\+|ab-|o\+|o-)\b/i);
-    if (bloodGroupMatch) extracted.blood_group = bloodGroupMatch[1].toUpperCase();
+    // Extract billing type
+    const billingTypes = ['BPL', 'RBSK', 'ESI', 'Senior Citizen', 'Poor', 'Amarnath Yatra', 'Medical Student', 'Hospital Staff', 'Handicapped', 'General'];
+    const billingTypePattern = new RegExp(`\\b(${billingTypes.join('|')})\\b`, 'i');
+    const billingMatch = userMessages.match(billingTypePattern);
+    if (billingMatch) extracted.billingType = billingMatch[1];
 
     // Extract chronic conditions
     const chronicKeywords = [
-      'diabetes',
-      'hypertension',
-      'asthma',
-      'copd',
-      'heart',
-      'cardiac',
-      'thyroid',
-      'arthritis',
-      'epilepsy',
-      'depression',
-      'anxiety',
-      'migraine',
-      'kidney',
-      'liver',
-      'cancer',
+      'diabetes', 'hypertension', 'asthma', 'copd', 'heart', 'cardiac',
+      'thyroid', 'arthritis', 'epilepsy', 'depression', 'anxiety',
+      'migraine', 'kidney', 'liver', 'cancer',
     ];
 
-    extracted.chronic_conditions = chronicKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
-    ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+    extracted.chronic_conditions = chronicKeywords
+      .filter(kw => new RegExp(`\\b${kw}\\b`, 'i').test(userMessages))
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
     // Extract allergies
     const allergyKeywords = [
-      'penicillin',
-      'aspirin',
-      'ibuprofen',
-      'paracetamol',
-      'gluten',
-      'lactose',
-      'nuts',
-      'shellfish',
-      'eggs',
-      'pollen',
+      'penicillin', 'aspirin', 'ibuprofen', 'paracetamol', 'gluten',
+      'lactose', 'nuts', 'shellfish', 'eggs', 'pollen',
     ];
 
-    extracted.allergies = allergyKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
-    ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+    extracted.allergies = allergyKeywords
+      .filter(kw => new RegExp(`\\b${kw}\\b`, 'i').test(userMessages))
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
-    // Extract symptoms
-    const symptomKeywords = [
-      'fever',
-      'cough',
-      'cold',
-      'headache',
-      'pain',
-      'vomiting',
-      'diarrhea',
-      'weakness',
-      'dizziness',
-      'nausea',
-      'fatigue',
-      'shortness of breath',
-      'sore throat',
-      'body ache',
-      'chest pain',
-      'stomach pain',
-    ];
-
-    extracted.symptoms = symptomKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
-    ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
-
-    // Extract chief complaint - look for consultation/reason/visit patterns
-    const chiefMatch = userMessages.match(/(?:chief complaint|reason|visit|consultation)\s+(?:for|of|is|about)\s+([a-zA-Z\s]+?)(?:\.|,|$)/i);
-    if (chiefMatch) extracted.chief_complaint = chiefMatch[1].trim();
-
-    // Extract current medications - both keywords and free text
+    // Extract current medications
     const medicationKeywords = [
-      'aspirin',
-      'ibuprofen',
-      'paracetamol',
-      'acetaminophen',
-      'metformin',
-      'lisinopril',
-      'amlodipine',
-      'atorvastatin',
-      'omeprazole',
-      'amoxicillin',
-      'vitamin',
-      'multivitamin',
+      'aspirin', 'ibuprofen', 'paracetamol', 'acetaminophen', 'metformin',
+      'lisinopril', 'amlodipine', 'atorvastatin', 'omeprazole', 'amoxicillin',
+      'vitamin', 'multivitamin',
     ];
 
-    extracted.current_medications = medicationKeywords.filter(kw =>
-      new RegExp(`\\b${kw}\\b`, 'i').test(userMessages)
-    ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+    extracted.current_medications = medicationKeywords
+      .filter(kw => new RegExp(`\\b${kw}\\b`, 'i').test(userMessages))
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
-    // If no keyword match, try to capture any mentioned medication (after "taking" or "on")
+    // If no keyword match, try to capture any mentioned medication
     if (extracted.current_medications.length === 0) {
       const medMatch = userMessages.match(/(?:taking|on|using|have)\s+([a-zA-Z0-9\s]+?)(?:\.|,|$)/i);
       if (medMatch) {
         const medText = medMatch[1].trim();
-        // Only add if it looks like a medication (not too short and not common words)
         if (medText.length > 2 && !/^(a|an|yes|no)$/i.test(medText)) {
           extracted.current_medications.push(medText);
         }
@@ -514,61 +471,79 @@ Extract and respond with this JSON format exactly (use null for missing data):
       <div className="flex flex-1 mt-24 gap-6 p-6 max-w-full">
         {/* Left Side - Form */}
         <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 p-8 overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Medical Information</h2>
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Patient Information</h2>
 
           <div className="space-y-6">
             {/* Personal Information */}
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">Personal Information</h3>
               <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-700 font-medium">First Name *</Label>
+                    <Input
+                      value={formData.firstName || ''}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      placeholder="First name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700 font-medium">Surname *</Label>
+                    <Input
+                      value={formData.surname || ''}
+                      onChange={(e) => handleInputChange('surname', e.target.value)}
+                      placeholder="Surname"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label className="text-gray-700 font-medium">Full Name</Label>
+                  <Label className="text-gray-700 font-medium">Mobile Number (10 digits) *</Label>
                   <Input
-                    value={formData.full_name || ''}
-                    onChange={(e) => handleInputChange('full_name', e.target.value)}
-                    placeholder="Your name"
+                    value={formData.mobileNumber || ''}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit number"
+                    maxLength="10"
                     className="mt-1"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-700 font-medium">Age</Label>
+                    <Label className="text-gray-700 font-medium">Age (years) *</Label>
                     <Input
                       value={formData.age || ''}
                       onChange={(e) => handleInputChange('age', e.target.value)}
                       placeholder="Years"
                       type="number"
+                      min="0"
+                      max="150"
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-700 font-medium">Gender</Label>
-                    <Input
+                    <Label className="text-gray-700 font-medium">Gender *</Label>
+                    <select
                       value={formData.gender || ''}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
-                      placeholder="Male/Female"
-                      className="mt-1"
-                    />
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-gray-700 font-medium">Phone</Label>
+                  <Label className="text-gray-700 font-medium">Purpose of Visit *</Label>
                   <Input
-                    value={formData.phone || ''}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="10-digit number"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-700 font-medium">Email</Label>
-                  <Input
-                    value={formData.email || ''}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="your@email.com"
+                    value={formData.purposeOfVisit || ''}
+                    onChange={(e) => handleInputChange('purposeOfVisit', e.target.value)}
+                    placeholder="Why are you visiting?"
                     className="mt-1"
                   />
                 </div>
@@ -583,44 +558,46 @@ Extract and respond with this JSON format exactly (use null for missing data):
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-700 font-medium">City</Label>
+                    <Label className="text-gray-700 font-medium">Occupation</Label>
                     <Input
-                      value={formData.city || ''}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      placeholder="City"
+                      value={formData.occupation || ''}
+                      onChange={(e) => handleInputChange('occupation', e.target.value)}
+                      placeholder="Your occupation"
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-700 font-medium">State</Label>
+                    <Label className="text-gray-700 font-medium">Income</Label>
                     <Input
-                      value={formData.state || ''}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      placeholder="State"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700 font-medium">Pincode</Label>
-                    <Input
-                      value={formData.pincode || ''}
-                      onChange={(e) => handleInputChange('pincode', e.target.value)}
-                      placeholder="Pincode"
+                      value={formData.income || ''}
+                      onChange={(e) => handleInputChange('income', e.target.value)}
+                      placeholder="Income / Range"
                       className="mt-1"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-gray-700 font-medium">Blood Group</Label>
-                  <Input
-                    value={formData.blood_group || ''}
-                    onChange={(e) => handleInputChange('blood_group', e.target.value)}
-                    placeholder="O+, A-, etc."
-                    className="mt-1"
-                  />
+                  <Label className="text-gray-700 font-medium">Billing Type</Label>
+                  <select
+                    value={formData.billingType || ''}
+                    onChange={(e) => handleInputChange('billingType', e.target.value)}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="">Select Billing Type</option>
+                    <option value="BPL">BPL</option>
+                    <option value="RBSK">RBSK</option>
+                    <option value="ESI">ESI</option>
+                    <option value="Senior Citizen">Senior Citizen</option>
+                    <option value="Poor">Poor</option>
+                    <option value="Amarnath Yatra">Amarnath Yatra</option>
+                    <option value="Medical Student">Medical Student</option>
+                    <option value="Hospital Staff">Hospital Staff</option>
+                    <option value="Handicapped">Handicapped</option>
+                    <option value="General">General</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -666,30 +643,6 @@ Extract and respond with this JSON format exactly (use null for missing data):
                         className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
                       >
                         {med}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-gray-700 font-medium">Chief Complaint</Label>
-                  <Input
-                    value={formData.chief_complaint || ''}
-                    onChange={(e) => handleInputChange('chief_complaint', e.target.value)}
-                    placeholder="Reason for visit"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-700 font-medium">Symptoms</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.symptoms?.map((symptom, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium"
-                      >
-                        {symptom}
                       </span>
                     ))}
                   </div>
