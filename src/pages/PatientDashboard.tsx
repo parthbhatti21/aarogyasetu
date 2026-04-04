@@ -247,7 +247,7 @@ const PatientDashboard = () => {
                   <Button 
                     size="sm"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => navigate('/patient/medical-form')}
+                    onClick={() => navigate('/patient/medical-form-manual')}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Open Form

@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import RegistrationDashboard from "./pages/RegistrationDashboard";
 import PatientDashboard from "./pages/PatientDashboard";
+import PatientMedicalForm from "./pages/PatientMedicalForm";
 import MedicalStoreAdminDashboard from "./pages/MedicalStoreAdminDashboard";
 import MedicalStoreSalesDashboard from "./pages/MedicalStoreSalesDashboard";
 import AIPatientRegistration from "./pages/AIPatientRegistration";
@@ -22,7 +23,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ roles, children, title }: { roles: UserRole[]; children: ReactNode; title?: string }) => {
+const ProtectedRoute = ({ roles, children, title, hideLayout }: { roles: UserRole[]; children: ReactNode; title?: string; hideLayout?: boolean }) => {
   const { loading, isAuthenticated, role } = useAuth();
 
   if (loading) {
@@ -37,7 +38,7 @@ const ProtectedRoute = ({ roles, children, title }: { roles: UserRole[]; childre
     return <Navigate to="/" replace />;
   }
 
-  return <MainLayout title={title}>{children}</MainLayout>;
+  return <MainLayout title={title} hideLayout={hideLayout}>{children}</MainLayout>;
 };
 
 const App = () => (
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/" element={<Login />} />
               <Route path="/patient/register" element={<AIPatientRegistration />} />
               <Route path="/patient/medical-form" element={<AIFormFillerFullWindow />} />
+              <Route path="/patient/medical-form-manual" element={<ProtectedRoute roles={['patient']} hideLayout><PatientMedicalForm /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roles={['admin']} title="Admin Dashboard"><AdminDashboard /></ProtectedRoute>} />
               <Route path="/doctor" element={<ProtectedRoute roles={['doctor']} title="Doctor Dashboard"><DoctorDashboard /></ProtectedRoute>} />
               <Route path="/senior-doctor" element={<ProtectedRoute roles={['senior_doctor']} title="Doctor Dashboard"><DoctorDashboard /></ProtectedRoute>} />
