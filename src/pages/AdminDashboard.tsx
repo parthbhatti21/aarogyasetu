@@ -91,6 +91,8 @@ const AdminDashboard = () => {
   const [roleFilter, setRoleFilter] = useState<string>('all');
 
   // Registration Staff states
+  const [registrationStaff, setRegistrationStaff] = useState<any[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
   const [showCreateStaff, setShowCreateStaff] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
@@ -138,13 +140,43 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDoctors();
+    fetchRegistrationStaff();
   }, []);
+
+  // Fetch registration staff
+  const fetchRegistrationStaff = async () => {
+    setLoadingStaff(true);
+    try {
+      const { data, error } = await supabase
+        .from('registration_staff_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setRegistrationStaff(data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch registration staff:', err);
+      toast({
+        title: 'Failed to load registration staff',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
 
   // Filter doctors
   const filteredDoctors = doctors.filter(doc => {
     if (specialtyFilter !== 'all' && doc.specialty !== specialtyFilter) return false;
     if (roleFilter !== 'all' && doc.role !== roleFilter) return false;
     if (selectedHospital && doc.hospital_id !== selectedHospital.id) return false;
+    return true;
+  });
+
+  // Filter registration staff
+  const filteredStaff = registrationStaff.filter(staff => {
+    if (selectedHospital && staff.hospital_id !== selectedHospital.id) return false;
     return true;
   });
 
@@ -199,6 +231,7 @@ const AdminDashboard = () => {
       setDoctorHospital(null);
       setShowCreateDoctor(false);
       await refresh();
+      await fetchDoctors(); // Refresh doctor list
     } catch (err: any) {
       toast({
         title: 'Failed to create account',
@@ -241,6 +274,7 @@ const AdminDashboard = () => {
       setStaffRole('registration_desk_operator');
       setStaffHospital(null);
       setShowCreateStaff(false);
+      await fetchRegistrationStaff(); // Refresh staff list
     } catch (err: any) {
       toast({
         title: 'Failed to create account',
@@ -453,9 +487,50 @@ const AdminDashboard = () => {
                 </Button>
               </form>
             ) : (
-              <div className="text-center py-8">
-                <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Click "Create Doctor Account" to add a new doctor</p>
+              <div className="space-y-4">
+                {loadingDoctors ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Loading doctors...</p>
+                ) : filteredDoctors.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Click "Create Doctor Account" to add a new doctor</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border">
+                        <tr>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Name</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Specialty</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Role</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Hospital</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredDoctors.map((doc) => (
+                          <tr key={doc.id} className="border-b border-border hover:bg-muted/50 transition">
+                            <td className="py-3 px-3 text-foreground font-medium">{doc.display_name}</td>
+                            <td className="py-3 px-3 text-muted-foreground capitalize">{doc.specialty || 'General'}</td>
+                            <td className="py-3 px-3 text-muted-foreground capitalize">
+                              {doc.role === 'senior_doctor' ? 'Senior Doctor' : 'Doctor'}
+                            </td>
+                            <td className="py-3 px-3 text-muted-foreground">{doc.hospital_name || 'N/A'}</td>
+                            <td className="py-3 px-3">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                doc.is_active 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {doc.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -571,9 +646,52 @@ const AdminDashboard = () => {
                 </Button>
               </form>
             ) : (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Click "Create Staff Account" to add registration desk staff</p>
+              <div className="space-y-4">
+                {loadingStaff ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Loading staff...</p>
+                ) : filteredStaff.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Click "Create Staff Account" to add registration desk staff</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border">
+                        <tr>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Name</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Email</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Phone</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Role</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Hospital</th>
+                          <th className="text-left py-3 px-3 font-semibold text-foreground">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStaff.map((staff) => (
+                          <tr key={staff.id} className="border-b border-border hover:bg-muted/50 transition">
+                            <td className="py-3 px-3 text-foreground font-medium">{staff.full_name}</td>
+                            <td className="py-3 px-3 text-muted-foreground text-xs">{staff.email}</td>
+                            <td className="py-3 px-3 text-muted-foreground">{staff.phone || 'N/A'}</td>
+                            <td className="py-3 px-3 text-muted-foreground capitalize">
+                              {staff.role === 'registration_desk_supervisor' ? 'Supervisor' : 'Operator'}
+                            </td>
+                            <td className="py-3 px-3 text-muted-foreground">{staff.hospital_name || 'N/A'}</td>
+                            <td className="py-3 px-3">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                staff.is_active 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {staff.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
