@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
-import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope, Filter, Eye, EyeOff, Copy, Loader2, TrendingUp, Zap, BarChart3, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { LogOut, Users, Clock, UserPlus, Stethoscope, Filter, Eye, EyeOff, Copy, Loader2, BarChart3, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { signUpWithPassword } from '@/utils/auth';
 import { supabase } from '@/utils/supabase';
@@ -14,7 +14,8 @@ import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 import { HospitalFilter } from '@/components/admin/HospitalFilter';
 import { InlineHospitalSelector } from '@/components/admin/InlineHospitalSelector';
 import { createRegistrationStaff, generateTemporaryPassword } from '@/services/registrationStaffService';
-import EnhancedDashboardMetrics from '@/components/admin/EnhancedDashboardMetrics';
+import IndustryStandardMetrics from '@/components/admin/IndustryStandardMetrics';
+import LogoImage from '@/assets/logo.jpg';
 import type { Hospital } from '@/types/database';
 
 interface DoctorProfile {
@@ -269,38 +270,35 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-slate-50">
+      {/* Professional Header */}
+      <header className="border-b border-slate-200 bg-white shadow-sm sticky top-0 z-10">
         <div className="px-6 py-4 max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                <Activity className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Aarogya Setu</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">AI-Powered Hospital Management</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <img src={LogoImage} alt="Aarogya Setu" className="h-10 w-10 object-contain" />
+            <div>
+              <h1 className="text-lg font-semibold text-slate-900">Aarogya Setu</h1>
+              <p className="text-xs text-slate-600">Hospital Management System</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.name || 'Admin'}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{today}</p>
+            <div className="text-right text-sm">
+              <p className="font-medium text-slate-900">{user?.name || 'Administrator'}</p>
+              <p className="text-xs text-slate-600">{today}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => refresh()} className="gap-2">
-                <Zap className="h-4 w-4" /> Refresh
+              <Button variant="outline" size="sm" onClick={() => refresh()}>
+                Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={() => { logout(); navigate('/'); }} className="gap-2">
-                <LogOut className="h-4 w-4" /> Logout
+              <Button variant="outline" size="sm" onClick={() => { logout(); navigate('/'); }}>
+                <LogOut className="h-4 w-4 mr-2" /> Logout
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="p-6 max-w-7xl mx-auto space-y-8">
+      <main className="p-6 max-w-7xl mx-auto space-y-6">
         {error && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error} (Ensure migrations applied and admin role is set in staff_profiles.)
@@ -309,8 +307,8 @@ const AdminDashboard = () => {
 
         <HospitalFilter onSelect={setSelectedHospital} selectedHospital={selectedHospital} />
 
-        {/* Professional Enhanced Metrics Dashboard */}
-        <EnhancedDashboardMetrics
+        {/* Professional Industry-Standard Metrics Dashboard */}
+        <IndustryStandardMetrics
           tokensProcessed={tokensToday}
           avgWaitTime={Math.max(5, Math.floor(Math.random() * 15) + 8)}
           patientSatisfaction={92}
@@ -323,15 +321,9 @@ const AdminDashboard = () => {
                   avgConsultationTime: `${Math.max(10, (doc.avg_time || 15))} min`,
                   completionRate: Math.min(100, 70 + (idx * 5)),
                   efficiency: Math.min(100, 75 + (idx * 4)),
-                  trend: idx % 3 === 0 ? 'up' : idx % 3 === 1 ? 'down' : 'stable',
                 }))
               : []
           }
-          traditionalComparison={{
-            traditionalWaitTime: 120,
-            traditionalSatisfaction: 65,
-            traditionalDaily: 80,
-          }}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
