@@ -204,38 +204,48 @@ const PatientDashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto">
-        {/* AI Tools Banner - Always show */}
-        <div className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
-          <div className="flex items-center gap-4 mb-4">
-            <Sparkles className="h-12 w-12" />
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">AI-Powered Medical Tools</h2>
-              <p className="text-blue-100">
-                {!isRegistered 
-                  ? 'Add symptoms and health background with AI for faster consultations.'
-                  : 'Update your medical information anytime with our AI assistant.'}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            {!isRegistered && (
+        {/* AI Tools Section - Compact Cards */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* AI Form Filler Card */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 mb-3">
+                <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">AI Form Filler</h3>
+                  <p className="text-sm text-gray-600">Fill medical forms with AI assistance</p>
+                </div>
+              </div>
               <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-blue-50"
-                onClick={() => navigate('/patient/register')}
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => navigate('/patient/medical-form')}
               >
-                <Mic className="h-5 w-5 mr-2" />
-                Start AI Intake
+                <Sparkles className="h-4 w-4 mr-2" />
+                Open Form Filler
               </Button>
+            </div>
+
+            {/* Start AI Intake Card */}
+            {!isRegistered && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-start gap-3 mb-3">
+                  <Mic className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">AI Intake</h3>
+                    <p className="text-sm text-gray-600">Start your registration with AI</p>
+                  </div>
+                </div>
+                <Button 
+                  size="sm"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => navigate('/patient/register')}
+                >
+                  <Mic className="h-4 w-4 mr-2" />
+                  Start Intake
+                </Button>
+              </div>
             )}
-            <Button 
-              size="lg" 
-              className="bg-blue-500 hover:bg-blue-400 text-white"
-              onClick={() => navigate('/patient/medical-form')}
-            >
-              <Sparkles className="h-5 w-5 mr-2" />
-              AI Form Filler
-            </Button>
           </div>
         </div>
 
@@ -266,7 +276,7 @@ const PatientDashboard = () => {
               <p className="text-gray-600">Real-time queue updates and token status</p>
             </div>
 
-            <div className="flex flex-col gap-4 max-w-xl">
+            <div className="flex flex-col gap-4 max-w-2xl">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Reason for visit (from AI chat)</label>
                 <div
@@ -282,29 +292,33 @@ const PatientDashboard = () => {
                   </p>
                 )}
               </div>
-              <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-2 min-w-[220px]">
-                <label className="text-sm font-medium text-gray-700">Or choose manually</label>
-                <DisclosureDropdown
-                  value={manualChiefComplaint}
-                  onValueChange={setManualChiefComplaint}
-                  placeholder="Select reason"
-                  options={MANUAL_VISIT_CHIEF}
-                  disabled={creatingToken || !isRegistered || !!currentToken}
-                />
-              </div>
-              <Button
-                onClick={handleGetToken}
-                disabled={
-                  creatingToken ||
-                  !isRegistered ||
-                  !!currentToken ||
-                  (!aiIntakeReady && manualChiefComplaint === 'general')
-                }
-              >
-                <Ticket className="h-4 w-4 mr-2" />
-                Get Token
-              </Button>
+              
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                  <div className="space-y-2 flex-1 min-w-[200px]">
+                    <label className="text-sm font-medium text-gray-700">Or choose manually</label>
+                    <DisclosureDropdown
+                      value={manualChiefComplaint}
+                      onValueChange={setManualChiefComplaint}
+                      placeholder="Select reason"
+                      options={MANUAL_VISIT_CHIEF}
+                      disabled={creatingToken || !isRegistered || !!currentToken}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleGetToken}
+                    disabled={
+                      creatingToken ||
+                      !isRegistered ||
+                      !!currentToken ||
+                      (!aiIntakeReady && manualChiefComplaint === 'general')
+                    }
+                  >
+                    <Ticket className="h-4 w-4 mr-2" />
+                    Get Token
+                  </Button>
+                </div>
               </div>
             </div>
             <VirtualWaitingRoom
