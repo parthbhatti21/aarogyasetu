@@ -18,6 +18,7 @@ import { usePatientHealthRecords } from '@/hooks/usePatientHealthRecords';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/utils/supabase';
 import { autoAssignDoctor } from '@/utils/doctorAssignment';
+import { createTokenForPatient } from '@/services/tokenService';
 import { LogOut, Ticket, FileText, Bell, Pill, Sparkles, Mic, Wand2 } from 'lucide-react';
 
 const PatientDashboard = () => {
@@ -103,67 +104,21 @@ const PatientDashboard = () => {
 
   const { data: healthData, loading: healthLoading } = usePatientHealthRecords(patientDbId || undefined);
 
-  const createTokenForPatient = async (payload: { chiefComplaint: string; symptoms: string[]; visitType: string }) => {
+  const createTokenHandler = async (payload: { chiefComplaint: string; symptoms: string[]; visitType: string }) => {
     if (!patientDbId) {
       throw new Error('Patient profile not found');
     }
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: existingToken } = await supabase
-      .from('tokens')
-      .select('id, token_number')
-      .eq('patient_id', patientDbId)
-      .eq('visit_date', today)
-      .in('status', ['Waiting', 'Active'])
-      .maybeSingle();
-
-    if (existingToken) {
-      throw new Error(`You already have a token today (${existingToken.token_number})`);
-    }
-
-    const { count: waitingCount, error: waitingCountError } = await supabase
-      .from('tokens')
-      .select('id', { count: 'exact', head: true })
-      .eq('visit_date', today)
-      .eq('status', 'Waiting');
-
-    if (waitingCountError) {
-      throw waitingCountError;
-    }
-
-    const { data: tokenNumber, error: tokenNumberError } = await supabase.rpc('generate_token_number');
-    if (tokenNumberError) {
-      throw tokenNumberError;
-    }
-
-    // Get selected hospital from session storage
     const selectedHospitalId = sessionStorage.getItem('selected_hospital_id');
 
-    const { data: newToken, error: createTokenError } = await supabase
-      .from('tokens')
-      .insert({
-        token_number: tokenNumber,
-        patient_id: patientDbId,
-        hospital_id: selectedHospitalId || null,
-        visit_type: payload.visitType,
-        chief_complaint: payload.chiefComplaint,
-        symptoms: payload.symptoms,
-        queue_position: (waitingCount || 0) + 1,
-      })
-      .select('id')
-      .single();
-
-    if (createTokenError) {
-      throw createTokenError;
-    }
-
-    // Auto-assign doctor based on chief complaint
-    if (newToken?.id) {
-      await autoAssignDoctor(newToken.id, payload.chiefComplaint);
-    }
-
-    return tokenNumber as string;
+    // Use new hospital-specific token service
+    return await createTokenForPatient({
+      patientId: patientDbId,
+      chiefComplaint: payload.chiefComplaint,
+      symptoms: payload.symptoms,
+      visitType: payload.visitType,
+      hospitalId: selectedHospitalId || undefined,
+    });
   };
 
   const handleGetToken = async () => {
@@ -189,7 +144,7 @@ const PatientDashboard = () => {
         symptoms = [];
       }
 
-      const tokenNumber = await createTokenForPatient({
+      const tokenNumber = await createTokenHandler({
         chiefComplaint,
         symptoms,
         visitType: 'General Consultation',
@@ -361,7 +316,7 @@ const PatientDashboard = () => {
                 open={aiChatOpen}
                 onOpenChange={setAiChatOpen}
                 patientId={patientDbId}
-                createToken={createTokenForPatient}
+                createToken={createTokenHandler}
                 onPreviewChange={handleIntakePreview}
                 onComplete={async (tokenNumber) => {
                   setAiReasonPreview(null);

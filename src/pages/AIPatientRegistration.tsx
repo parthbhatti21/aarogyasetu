@@ -11,7 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useSpeechRecognition, useSpeechSynthesis } from '@/hooks/useSpeech';
 import { supabase } from '@/utils/supabase';
-import type { PatientRegistrationForm } from '@/types/database';
+import { createTokenForPatient, getHospitals } from '@/services/tokenService';
+import type { PatientRegistrationForm, Hospital } from '@/types/database';
 import { Send, Mic, MicOff, Volume2, VolumeX, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 
 const AIPatientRegistration = () => {
@@ -25,6 +26,11 @@ const AIPatientRegistration = () => {
   const [showReview, setShowReview] = useState(false);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  
+  // Hospital selection states
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -119,6 +125,27 @@ const AIPatientRegistration = () => {
     }
   }, [isComplete, showReview, toast]);
 
+  // Load hospitals on mount
+  useEffect(() => {
+    const loadHospitals = async () => {
+      setLoadingHospitals(true);
+      try {
+        const hosp = await getHospitals();
+        setHospitals(hosp);
+      } catch (err: any) {
+        console.error('Failed to load hospitals:', err);
+        toast({
+          title: 'Failed to load hospitals',
+          description: err.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingHospitals(false);
+      }
+    };
+    loadHospitals();
+  }, [toast]);
+
   const handleSendMessage = async () => {
     if (!userMessage.trim() || aiLoading) return;
 
@@ -155,11 +182,20 @@ const AIPatientRegistration = () => {
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
+    // Validate required fields including hospital
     if (!formData.full_name || !formData.phone || !formData.age || !formData.gender) {
       toast({
         title: 'Missing Required Fields',
         description: 'Please provide name, phone, age, and gender.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!selectedHospital) {
+      toast({
+        title: 'Hospital Required',
+        description: 'Please select a hospital to proceed.',
         variant: 'destructive',
       });
       return;
@@ -181,7 +217,7 @@ const AIPatientRegistration = () => {
         ? `+91${formData.phone}` 
         : formData.phone!;
 
-      // Create patient record
+      // Create patient record with hospital_id
       const { data: newPatient, error: patientError } = await supabase
         .from('patients')
         .insert({
@@ -198,6 +234,8 @@ const AIPatientRegistration = () => {
           blood_group: formData.blood_group,
           user_id: user.id,
           preferred_language: language,
+          hospital_id: selectedHospital.id,  // Add hospital assignment
+          hospital_name: selectedHospital.hospital_name,
         })
         .select()
         .single();
@@ -214,23 +252,14 @@ const AIPatientRegistration = () => {
         });
       }
 
-      // Generate token
-      const { data: tokenNumber, error: tokenError } = await supabase.rpc('generate_token_number');
-      if (tokenError) throw tokenError;
-
-      const { data: token, error: tokenInsertError } = await supabase
-        .from('tokens')
-        .insert({
-          token_number: tokenNumber,
-          patient_id: newPatient.id,
-          chief_complaint: formData.chief_complaint,
-          symptoms: formData.symptoms || [],
-          visit_type: 'General Consultation',
-        })
-        .select()
-        .single();
-
-      if (tokenInsertError) throw tokenInsertError;
+      // Generate hospital-specific token
+      const tokenNumber = await createTokenForPatient({
+        patientId: newPatient.id,
+        chiefComplaint: formData.chief_complaint || 'Initial Registration',
+        symptoms: formData.symptoms || [],
+        visitType: 'General Consultation',
+        hospitalId: selectedHospital.id,
+      });
 
       // Save AI conversation
       await saveConversation(newPatient.id);
@@ -489,12 +518,45 @@ const AIPatientRegistration = () => {
                   />
                 </div>
 
+                {/* Hospital Selection *Required* */}
+                <div className="border-t pt-4">
+                  <Label htmlFor="hospital" className="text-base font-medium">Hospital Selection * <span className="text-red-500">(Required)</span></Label>
+                  <p className="text-xs text-gray-600 mb-3">Choose the hospital where you want to register</p>
+                  <select
+                    id="hospital"
+                    value={selectedHospital?.id || ''}
+                    onChange={(e) => {
+                      const hospital = hospitals.find(h => h.id === e.target.value);
+                      setSelectedHospital(hospital || null);
+                    }}
+                    disabled={loadingHospitals}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-medium"
+                  >
+                    <option value="">
+                      {loadingHospitals ? 'Loading hospitals...' : 'Select a hospital...'}
+                    </option>
+                    {hospitals.map((hospital) => (
+                      <option key={hospital.id} value={hospital.id}>
+                        {hospital.hospital_name} ({hospital.state})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedHospital && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                      <p className="text-green-700">
+                        ✓ Hospital: <strong>{selectedHospital.hospital_name}</strong>
+                      </p>
+                      <p className="text-green-600 text-xs">{selectedHospital.state}</p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Submit Button */}
                 <Button
                   className="w-full mt-6"
                   size="lg"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !formData.full_name || !formData.phone}
+                  disabled={isSubmitting || !formData.full_name || !formData.phone || !selectedHospital}
                 >
                   {isSubmitting ? (
                     'Registering...'
