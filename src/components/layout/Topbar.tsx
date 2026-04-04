@@ -21,7 +21,7 @@ export const Topbar = ({ title }: TopbarProps) => {
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [hospitals, setHospitals] = useState<Array<{ id: string; name: string }>>([]);
   const [settings, setSettings] = useState({
-    email: '',
+    full_name: '',
     phone: '',
     hospital_id: '',
   });
@@ -38,12 +38,12 @@ export const Topbar = ({ title }: TopbarProps) => {
       // Get current patient data
       const { data: patient } = await supabase
         .from('patients')
-        .select('phone, user_id, hospital_id')
+        .select('full_name, phone, hospital_id')
         .eq('user_id', user?.id)
         .single();
 
       setSettings({
-        email: user?.email || '',
+        full_name: patient?.full_name || '',
         phone: patient?.phone || '',
         hospital_id: patient?.hospital_id || '',
       });
@@ -63,6 +63,16 @@ export const Topbar = ({ title }: TopbarProps) => {
   const handleSaveSettings = async () => {
     if (!user?.id) return;
 
+    // Validate required fields
+    if (!settings.full_name.trim()) {
+      toast({
+        title: 'Invalid Name',
+        description: 'Please enter your name',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validate phone number
     if (settings.phone && !/^\d{10}$/.test(settings.phone)) {
       toast({
@@ -80,21 +90,13 @@ export const Topbar = ({ title }: TopbarProps) => {
       const { error: updateError } = await supabase
         .from('patients')
         .update({
+          full_name: settings.full_name,
           phone: settings.phone,
           hospital_id: settings.hospital_id,
         })
         .eq('user_id', user.id);
 
       if (updateError) throw updateError;
-
-      // Update email in auth if changed
-      if (settings.email !== user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: settings.email,
-        });
-
-        if (emailError) throw emailError;
-      }
 
       toast({
         title: 'Success',
@@ -184,16 +186,16 @@ export const Topbar = ({ title }: TopbarProps) => {
                   </Button>
                 </div>
 
-                {/* Email */}
+                {/* Full Name */}
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Email <span className="text-red-500">*</span>
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    type="email"
-                    placeholder="Email"
-                    value={settings.email}
-                    onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                    type="text"
+                    placeholder="Enter your name"
+                    value={settings.full_name}
+                    onChange={(e) => setSettings({ ...settings, full_name: e.target.value })}
                     disabled={isLoadingSettings}
                     className="h-8 text-sm"
                   />
