@@ -128,7 +128,7 @@ const PatientMedicalForm = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
+        <div className="px-6 py-4 flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
@@ -143,7 +143,7 @@ const PatientMedicalForm = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="w-full p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Details Section */}
           <Card className="p-6">
@@ -310,7 +310,15 @@ const PatientMedicalForm = () => {
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-start">
+            <Button
+              type="submit"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white"
+              disabled={isLoading}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? 'Saving...' : 'Save Form'}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -318,14 +326,6 @@ const PatientMedicalForm = () => {
               disabled={isLoading}
             >
               Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isLoading}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isLoading ? 'Saving...' : 'Save Form'}
             </Button>
           </div>
         </form>
