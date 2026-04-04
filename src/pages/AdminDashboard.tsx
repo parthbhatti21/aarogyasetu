@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
-import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope, Filter } from 'lucide-react';
+import { LogOut, Users, Activity, Clock, UserPlus, Stethoscope, Filter, Eye, EyeOff, Copy, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { signUpWithPassword } from '@/utils/auth';
 import { supabase } from '@/utils/supabase';
@@ -13,6 +13,7 @@ import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { formatChiefComplaintForQueue } from '@/utils/chiefComplaintDisplay';
 import { HospitalFilter } from '@/components/admin/HospitalFilter';
 import { InlineHospitalSelector } from '@/components/admin/InlineHospitalSelector';
+import { createRegistrationStaff, generateTemporaryPassword } from '@/services/registrationStaffService';
 import type { Hospital } from '@/types/database';
 
 interface DoctorProfile {
@@ -86,6 +87,17 @@ const AdminDashboard = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+
+  // Registration Staff states
+  const [showCreateStaff, setShowCreateStaff] = useState(false);
+  const [staffName, setStaffName] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [staffPhone, setStaffPhone] = useState('');
+  const [staffRole, setStaffRole] = useState<'registration_desk_operator' | 'registration_desk_supervisor'>('registration_desk_operator');
+  const [creatingStaff, setCreatingStaff] = useState(false);
+  const [staffHospital, setStaffHospital] = useState<Hospital | null>(null);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   const DOCTOR_SPECIALTIES = [
     { value: 'general', label: 'General Practice' },
@@ -194,6 +206,65 @@ const AdminDashboard = () => {
     } finally {
       setCreatingDoctor(false);
     }
+  };
+
+  const handleCreateRegistrationStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffEmail || !staffPassword || !staffName || !staffHospital) {
+      toast({ title: 'Fill all required fields', variant: 'destructive' });
+      return;
+    }
+
+    setCreatingStaff(true);
+    try {
+      await createRegistrationStaff({
+        fullName: staffName,
+        email: staffEmail,
+        password: staffPassword,
+        phone: staffPhone || undefined,
+        hospitalId: staffHospital.id,
+        role: staffRole,
+      });
+
+      toast({
+        title: 'Success!',
+        description: `${staffRole === 'registration_desk_supervisor' ? 'Supervisor' : 'Operator'} at ${staffHospital.hospital_name} created successfully.`,
+      });
+
+      // Reset form
+      setStaffName('');
+      setStaffEmail('');
+      setStaffPassword('');
+      setStaffPhone('');
+      setStaffRole('registration_desk_operator');
+      setStaffHospital(null);
+      setShowCreateStaff(false);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to create account',
+        description: err.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingStaff(false);
+    }
+  };
+
+  const handleGenerateStaffPassword = () => {
+    const password = generateTemporaryPassword();
+    setStaffPassword(password);
+    toast({
+      title: 'Password Generated',
+      description: 'Click copy to use this password',
+    });
+  };
+
+  const handleCopyStaffPassword = () => {
+    navigator.clipboard.writeText(staffPassword);
+    toast({
+      title: 'Copied!',
+      description: 'Password copied to clipboard',
+    });
   };
 
   return (
@@ -360,6 +431,124 @@ const AdminDashboard = () => {
               <div className="text-center py-8">
                 <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">Click "Create Doctor Account" to add a new doctor</p>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card rounded-xl p-6 shadow-card border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Registration Desk Management</h3>
+              <Button variant="outline" size="sm" onClick={() => setShowCreateStaff((prev) => !prev)}>
+                {showCreateStaff ? 'Cancel' : 'Create Staff Account'}
+              </Button>
+            </div>
+            {showCreateStaff ? (
+              <form className="space-y-3" onSubmit={handleCreateRegistrationStaff}>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-name">Full Name</Label>
+                  <Input
+                    id="staff-name"
+                    value={staffName}
+                    onChange={(e) => setStaffName(e.target.value)}
+                    placeholder="Staff member name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-email">Email</Label>
+                  <Input
+                    id="staff-email"
+                    type="email"
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    placeholder="staff@hospital.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-phone">Phone (Optional)</Label>
+                  <Input
+                    id="staff-phone"
+                    type="tel"
+                    value={staffPhone}
+                    onChange={(e) => setStaffPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile"
+                    maxLength={10}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-password">Password</Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        id="staff-password"
+                        type={showStaffPassword ? 'text' : 'password'}
+                        value={staffPassword}
+                        onChange={(e) => setStaffPassword(e.target.value)}
+                        placeholder="Enter password or generate one"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowStaffPassword(!showStaffPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGenerateStaffPassword}
+                      className="gap-1"
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                  {staffPassword && (
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-muted rounded">
+                      <code className="text-xs font-mono flex-1 truncate">{staffPassword}</code>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCopyStaffPassword}
+                        className="gap-1 h-7"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-role">Role</Label>
+                  <DisclosureDropdown
+                    value={staffRole}
+                    onValueChange={(value) => setStaffRole(value as 'registration_desk_operator' | 'registration_desk_supervisor')}
+                    placeholder="Select Role"
+                    options={[
+                      { label: 'Operator', value: 'registration_desk_operator' },
+                      { label: 'Supervisor', value: 'registration_desk_supervisor' },
+                    ]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hospital Selection *</Label>
+                  <InlineHospitalSelector onSelect={setStaffHospital} selectedHospital={staffHospital} />
+                </div>
+                <Button disabled={creatingStaff || !staffHospital} type="submit" className="w-full">
+                  {creatingStaff ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Staff Account'
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Click "Create Staff Account" to add registration desk staff</p>
               </div>
             )}
           </div>
