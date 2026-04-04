@@ -120,11 +120,15 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('staff_profiles')
-        .select('*')
+        .select('id, user_id, display_name, role, specialty, hospital_id, hospital_name, is_active, created_at')
         .in('role', ['doctor', 'senior_doctor'])
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching doctors:', error);
+        throw error;
+      }
+      console.log('Fetched doctors:', data);
       setDoctors(data || []);
     } catch (err: any) {
       console.error('Failed to fetch doctors:', err);
@@ -149,10 +153,14 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('registration_staff_profiles')
-        .select('*')
+        .select('id, user_id, full_name, email, phone, hospital_id, hospital_name, role, is_active, created_at')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching registration staff:', error);
+        throw error;
+      }
+      console.log('Fetched registration staff:', data);
       setRegistrationStaff(data || []);
     } catch (err: any) {
       console.error('Failed to fetch registration staff:', err);
