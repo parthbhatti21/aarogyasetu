@@ -273,6 +273,53 @@ const PatientDashboard = () => {
               </div>
             </div>
 
+            {/* Patient Form Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">Patient Form</h3>
+                <p className="text-sm text-gray-600 mb-4">Complete your medical information</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Manual Fill Card */}
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <FileText className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Fill Manually</h3>
+                      <p className="text-sm text-gray-600">Fill the form step by step</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => navigate('/patient/medical-form')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Open Form
+                  </Button>
+                </div>
+
+                {/* AI Form Filler Card */}
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">AI Form Filler</h3>
+                      <p className="text-sm text-gray-600">Use AI to fill your form</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => navigate('/patient/medical-form')}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Open AI Filler
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div>
               <h2 className="text-2xl font-bold mb-2">Virtual Waiting Room</h2>
               <p className="text-gray-600">Real-time queue updates and token status</p>
