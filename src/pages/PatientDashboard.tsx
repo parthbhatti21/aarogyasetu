@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DisclosureDropdown } from '@/components/ui/disclosure-dropdown';
-import { AITokenIntakeChat, type IntakePreview } from '@/components/patient/AITokenIntakeChat';
 import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
 import { NotificationsPanel } from '@/components/patient/NotificationsPanel';
 import { useQueue } from '@/hooks/useQueue';
@@ -13,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/utils/supabase';
 import { autoAssignDoctor } from '@/utils/doctorAssignment';
 import { createTokenForPatient } from '@/services/tokenService';
-import { LogOut, Ticket, FileText, Bell, Pill, Sparkles, Mic, Wand2 } from 'lucide-react';
+import { Ticket, FileText, Bell, Pill, Sparkles, Mic } from 'lucide-react';
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
@@ -27,28 +26,15 @@ const PatientDashboard = () => {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [creatingToken, setCreatingToken] = useState(false);
-  const [manualChiefComplaint, setManualChiefComplaint] = useState('general');
-  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [aiReasonPreview, setAiReasonPreview] = useState<string | null>(null);
   const [aiSymptomsPreview, setAiSymptomsPreview] = useState<string[]>([]);
   const [aiIntakeReady, setAiIntakeReady] = useState(false);
 
-  const handleIntakePreview = useCallback((preview: IntakePreview) => {
+  const handleIntakePreview = useCallback((preview: any) => {
     setAiReasonPreview(preview.chiefComplaint.trim() || null);
     setAiSymptomsPreview(preview.symptoms);
     setAiIntakeReady(preview.ready);
   }, []);
-
-  const MANUAL_VISIT_CHIEF: { value: string; label: string }[] = [
-    { value: 'general', label: 'General consultation' },
-    { value: 'fever', label: 'Fever / cold / flu' },
-    { value: 'cough', label: 'Cough / breathing difficulty' },
-    { value: 'pain', label: 'Pain (abdomen / chest / joints)' },
-    { value: 'headache', label: 'Headache / migraine' },
-    { value: 'injury', label: 'Injury / wound' },
-    { value: 'followup', label: 'Follow-up visit' },
-    { value: 'chronic', label: 'Chronic condition review' },
-  ];
 
   // Check if patient is registered
   useEffect(() => {
@@ -129,25 +115,17 @@ const PatientDashboard = () => {
   const handleGetToken = async () => {
     setCreatingToken(true);
     try {
-      let chiefComplaint: string;
-      let symptoms: string[];
-
-      if (aiIntakeReady && aiReasonPreview?.trim()) {
-        chiefComplaint = aiReasonPreview.trim();
-        symptoms = [...aiSymptomsPreview];
-      } else {
-        if (manualChiefComplaint === 'general') {
-          toast({
-            title: 'Choose a visit reason',
-            description: 'Use AI Token Generator to describe your visit, or pick a specific reason from the list (not General consultation).',
-            variant: 'destructive',
-          });
-          return;
-        }
-        const opt = MANUAL_VISIT_CHIEF.find((o) => o.value === manualChiefComplaint);
-        chiefComplaint = opt?.label || 'General consultation';
-        symptoms = [];
+      if (!aiIntakeReady || !aiReasonPreview?.trim()) {
+        toast({
+          title: 'Please describe your symptoms',
+          description: 'Use AI Token Generator to describe your visit reason and symptoms.',
+          variant: 'destructive',
+        });
+        return;
       }
+
+      const chiefComplaint = aiReasonPreview.trim();
+      const symptoms = [...aiSymptomsPreview];
 
       const tokenNumber = await createTokenHandler({
         chiefComplaint,
@@ -178,7 +156,7 @@ const PatientDashboard = () => {
   // Show loading state
   if (isRegistered === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -188,7 +166,7 @@ const PatientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-100">
       <header className="bg-white shadow-sm px-6 py-4 border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
@@ -199,47 +177,12 @@ const PatientDashboard = () => {
               {patientEmail || 'Patient Portal'}
             </p>
           </div>
-          <Button variant="outline" onClick={() => { logout(); navigate('/'); }}>
-            <LogOut className="h-4 w-4 mr-2" /> Logout
-          </Button>
+
         </div>
       </header>
 
       <main className="p-6 max-w-7xl mx-auto">
-        {/* AI Tools Banner - Always show */}
-        <div className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
-          <div className="flex items-center gap-4 mb-4">
-            <Sparkles className="h-12 w-12" />
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">AI-Powered Medical Tools</h2>
-              <p className="text-blue-100">
-                {!isRegistered 
-                  ? 'Add symptoms and health background with AI for faster consultations.'
-                  : 'Update your medical information anytime with our AI assistant.'}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            {!isRegistered && (
-              <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-blue-50"
-                onClick={() => navigate('/patient/register')}
-              >
-                <Mic className="h-5 w-5 mr-2" />
-                Start AI Intake
-              </Button>
-            )}
-            <Button 
-              size="lg" 
-              className="bg-blue-500 hover:bg-blue-400 text-white"
-              onClick={() => navigate('/patient/medical-form')}
-            >
-              <Sparkles className="h-5 w-5 mr-2" />
-              AI Form Filler
-            </Button>
-          </div>
-        </div>
+        {/* AI Tools Section - Moved to waiting room tab */}
 
         <Tabs defaultValue="waiting-room" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-4">
@@ -263,12 +206,59 @@ const PatientDashboard = () => {
 
           {/* Virtual Waiting Room Tab */}
           <TabsContent value="waiting-room" className="space-y-6">
+            {/* Patient Form Section */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Patient Form</h2>
+                <p className="text-gray-600">Complete your medical information</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Manual Fill Card */}
+                <div className="bg-gradient-to-br from-emerald-100 to-emerald-100 border border-emerald-400 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <FileText className="h-6 w-6 text-emerald-700 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">Fill Manually</h3>
+                      <p className="text-sm text-gray-600">Fill the form step by step</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm"
+                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white"
+                    onClick={() => navigate('/patient/medical-form-manual')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Open Form
+                  </Button>
+                </div>
+
+                {/* AI Form Filler Card */}
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">AI Form Filler</h3>
+                      <p className="text-sm text-gray-600">Use AI to fill your form</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => navigate('/patient/medical-form')}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Open AI Filler
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div>
               <h2 className="text-2xl font-bold mb-2">Virtual Waiting Room</h2>
               <p className="text-gray-600">Real-time queue updates and token status</p>
             </div>
 
-            <div className="flex flex-col gap-4 max-w-xl">
+            <div className="flex flex-col gap-4 max-w-2xl">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Reason for visit (from AI chat)</label>
                 <div
@@ -284,67 +274,22 @@ const PatientDashboard = () => {
                   </p>
                 )}
               </div>
-              <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-2 min-w-[220px]">
-                <label className="text-sm font-medium text-gray-700">Or choose manually</label>
-                <DisclosureDropdown
-                  value={manualChiefComplaint}
-                  onValueChange={setManualChiefComplaint}
-                  placeholder="Select reason"
-                  options={MANUAL_VISIT_CHIEF}
-                  disabled={creatingToken || !isRegistered || !!currentToken}
-                />
-              </div>
+              
               <Button
+                size="sm"
                 onClick={handleGetToken}
                 disabled={
                   creatingToken ||
                   !isRegistered ||
                   !!currentToken ||
-                  (!aiIntakeReady && manualChiefComplaint === 'general')
+                  !aiIntakeReady
                 }
+                className="w-fit"
               >
                 <Ticket className="h-4 w-4 mr-2" />
                 Get Token
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setAiChatOpen(true)}
-                disabled={creatingToken || !isRegistered || !!currentToken || !patientDbId}
-              >
-                <Wand2 className="h-4 w-4 mr-2" />
-                AI Token Generator
-              </Button>
-              </div>
             </div>
-
-            {patientDbId && (
-              <AITokenIntakeChat
-                open={aiChatOpen}
-                onOpenChange={setAiChatOpen}
-                patientId={patientDbId}
-                createToken={createTokenHandler}
-                onPreviewChange={handleIntakePreview}
-                onComplete={async (tokenNumber) => {
-                  setAiReasonPreview(null);
-                  setAiSymptomsPreview([]);
-                  setAiIntakeReady(false);
-                  await refresh();
-                  toast({
-                    title: 'AI token generated',
-                    description: `Your token number is ${tokenNumber}`,
-                  });
-                }}
-                onError={(message) => {
-                  toast({
-                    title: 'AI token failed',
-                    description: message,
-                    variant: 'destructive',
-                  });
-                }}
-              />
-            )}
-
             <VirtualWaitingRoom
               currentToken={currentToken}
               activeToken={activeToken}
