@@ -17,7 +17,7 @@ export const Topbar = ({ title }: TopbarProps) => {
       {/* Logo and company name */}
       <div className="flex items-center gap-3">
         <img src={LogoImage} alt="AarogyaSetuX" className="h-8 w-8 rounded" />
-        <div className="text-base font-extrabold text-foreground tracking-tight">AarogyaSetuX</div>
+        <div className="text-xl font-extrabold text-foreground tracking-tight">AarogyaSetuX</div>
       </div>
 
       {/* Spacer */}
