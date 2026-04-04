@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
 interface MainLayoutProps {
@@ -14,25 +13,19 @@ export const MainLayout = ({ children, title, hideLayout }: MainLayoutProps) => 
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="flex flex-col h-screen bg-background">
+      {/* Topbar only */}
+      <Topbar title={title} />
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <Topbar title={title} />
-
-        {/* Page content - offset by topbar height */}
-        <main className="flex-1 overflow-auto pt-16">
-          <div className={cn(
-            'w-full h-full transition-all duration-300',
-            'p-4 md:p-6 lg:p-8'
-          )}>
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Page content - offset by topbar height */}
+      <main className="flex-1 overflow-auto pt-16">
+        <div className={cn(
+          'w-full h-full transition-all duration-300',
+          'p-4 md:p-6 lg:p-8'
+        )}>
+          {children}
+        </div>
+      </main>
     </div>
   );
 };
