@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AITokenIntakeChat, type IntakePreview } from '@/components/patient/AITokenIntakeChat';
+import { AIMedicalFormFiller } from '@/components/patient/AIMedicalFormFiller';
 import { VirtualWaitingRoom } from '@/components/patient/VirtualWaitingRoom';
 import { NotificationsPanel } from '@/components/patient/NotificationsPanel';
 import { useQueue } from '@/hooks/useQueue';
@@ -453,6 +454,15 @@ const PatientDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* AI Medical Form Filler - Floating Widget */}
+        <AIMedicalFormFiller onFormFilled={(formData) => {
+          toast({
+            title: 'Medical Information Extracted',
+            description: `Found ${formData.chronic_conditions.length} conditions, ${formData.allergies.length} allergies, ${formData.current_medications.length} medications`,
+            duration: 3000,
+          });
+        }} />
       </main>
     </div>
   );
